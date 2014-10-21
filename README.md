@@ -7,17 +7,17 @@ Shared Libraries :
 libDAQ/
 Directory containing the files that generates the library used to convert the data file from ANU experiment to basic root tree.
 To creat the library : 
-> cd libDAQ/
-> make distclean
-> make
+	> cd libDAQ/
+	> make distclean
+	> make
 
 libAnalysis/
 Directory containing the files that generates the library used to generate a root tree file from a basic root tree 
 to another more compact and useful root tree to replay data with selection of segments, and live graphical cuts.
 To creat the library : 
-> cd libAnalysis/
-> make distclean
-> make
+	> cd libAnalysis/
+	> make distclean
+	> make
 
 Files description : 
 -------------------
