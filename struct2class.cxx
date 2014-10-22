@@ -86,9 +86,10 @@ gMielData = new TMielData();
 for(int i=1;i<argc;i++)	{
 
 	printf(" Reading file %s\t", argv[i]);
-	string outputname = "Data_";
 	string inputname = argv[i];
-	outputname.append(inputname);	
+  string outputname = inputname;	
+  size_t pos = inputname.find(".root");
+	outputname.insert(pos, "_data");	
 	printf(" Output file %s\n", outputname.c_str());
 	
 	// point to the input and output files
