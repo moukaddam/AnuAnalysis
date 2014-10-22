@@ -64,6 +64,7 @@ UShort_t gBuffer_VContE ;
 UShort_t gBuffer_VContG ; 	
 
 vector < vector<double> > gCalibration;
+bool gCalibrationRead;
 
 //Declare functions
 void GetEvent(int i); 
@@ -86,6 +87,7 @@ int main(int argc, char **argv) {
   }
 
   bool GoodEvent=false; 
+  gCalibrationRead=false;
   gMielData = new TMielData();
 
   // Iterate through the arguments
@@ -94,6 +96,7 @@ int main(int argc, char **argv) {
       if (strcmp(argv[i], "-c") == 0) {
         printf(" Reading in calibration file %s\n", argv[i+1] );
         ReadMielCalibration(argv[i+1]);
+        gCalibrationRead=true;
       } else if (strcmp(argv[i], "-f") == 0) {
         for (int z=i+1; z<argc; z++) {
           
@@ -124,15 +127,16 @@ int main(int argc, char **argv) {
 	cout << "Tree contains " << nentries <<endl;
 	
 				
-	for (Int_t j=0 ; j < nentries; j++) {
+	for (int j=0 ; j < nentries; j++) {
 		
 		//Get the entry and set the events in the new Tree
 		GoodEvent=false; 
-		//cout << "Event Number : " << i <<endl;
+		//cout << "Event Number : " << j <<endl;
 		//gOldTree->Scan("*","","",1,i);
 		GetEvent(j);	
 
 		for (int k = 0 ; k < 6 ; k++ ) {
+      
 			if (gBuffer_energy.at(k) > 0) { // keep this good event
 				GoodEvent=true; 
 				gMielData->SetMiel(k, gBuffer_energy.at(k), CalibrateMielEnergy(k,gBuffer_energy.at(k)), gBuffer_time.at(k)) ;
@@ -303,10 +307,13 @@ void ReadMielCalibration(string fFilename) {
 
 // ##############################
 float CalibrateMielEnergy(int segment, int E_charge) {
-  float temp = 0;
-  for (int i=0; i<gCalibration.at(segment).size(); i++)
-    temp += gCalibration.at(segment).at(i) * pow(E_charge, i);
-  return E_charge ; 
+  if (gCalibrationRead) {
+    float temp = 0;
+    for (int i=0; i<gCalibration.at(segment).size(); i++)
+      temp += gCalibration.at(segment).at(i) * pow(static_cast<double>(E_charge), i);
+    return temp ; 
+  } else
+    return E_charge;  
 }
 
 // ##############################
