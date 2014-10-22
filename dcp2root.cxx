@@ -72,10 +72,10 @@ TDAQConfig *PrepareConfig(void){
    CurBranch->GetADCs()->Add(new TDAQADC(0, 3, "Miel4E",    "Miel4E", 8192));
    CurBranch->GetADCs()->Add(new TDAQADC(0, 4, "Miel5E",    "Miel5E", 8192));
    CurBranch->GetADCs()->Add(new TDAQADC(0, 5, "Miel6E",    "Miel6E", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 6, "Aptherix",  "Aptherix", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 7, "HallProbe", "HallProbe", 2048));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 8, "VcontE",    "VcontE", 2048));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 9, "VcontG",    "VcontG", 2048));
+   CurBranch->GetADCs()->Add(new TDAQADC(1, 0, "Aptherix",  "Aptherix", 8192));
+   CurBranch->GetADCs()->Add(new TDAQADC(1, 1, "HallProbe", "HallProbe", 2048));
+   CurBranch->GetADCs()->Add(new TDAQADC(1, 2, "VcontE",    "VcontE", 2048));
+   CurBranch->GetADCs()->Add(new TDAQADC(1, 3, "VcontG",    "VcontG", 2048));
 
    CurBranch->GetADCs()->Add(new TDAQADC(5, 0, "Miel1T", "Miel1T", 4096));
    CurBranch->GetADCs()->Add(new TDAQADC(5, 1, "Miel2T", "Miel2T", 4096));
