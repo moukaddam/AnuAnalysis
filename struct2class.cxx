@@ -10,9 +10,12 @@
 //c++
 #include <stdio.h> //c
 #include <stdlib.h> //c
+#include <string.h>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
+#include <cmath>
 using namespace std;
 
 //Root 
@@ -60,10 +63,13 @@ UShort_t gBuffer_hall ;
 UShort_t gBuffer_VContE ;  
 UShort_t gBuffer_VContG ; 	
 
+vector < vector<double> > gCalibration;
+
 //Declare functions
 void GetEvent(int i); 
 void ResetBuffers(); 
-float CalibrateEnergy(int segment, int E_charge); 
+void ReadMielCalibration(string filename);
+float CalibrateMielEnergy(int segment, int E_charge); 
 float CalibrateTime(int segment, int T_charge); 
 void PrintBuffers();
 void PrintMiel();
@@ -72,25 +78,31 @@ void PrintMiel();
 //                                Main function
 // #########################################################################################
 
-int main(int argc, char **argv){
+int main(int argc, char **argv) {
    
- if(argc < 2)	{
-printf(" use : ./struct2class XXX.root (YYY.root .. etc...) \n");
-return 1;
-}
+  if(argc < 2)	{
+    printf(" use : ./struct2class XXX.root (YYY.root .. etc...) \n");
+    return 1;
+  }
 
-bool GoodEvent=false; 
-gMielData = new TMielData();
+  bool GoodEvent=false; 
+  gMielData = new TMielData();
 
-// Iterate through the input files
-for(int i=1;i<argc;i++)	{
-
-	printf(" Reading file %s\t", argv[i]);
-	string inputname = argv[i];
-  string outputname = inputname;	
-  size_t pos = inputname.find(".root");
-	outputname.insert(pos, "_data");	
-	printf(" Output file %s\n", outputname.c_str());
+  // Iterate through the arguments
+  for(int i=1;i<argc;i++)	{
+    if (i+1 != argc) {
+      if (strcmp(argv[i], "-c") == 0) {
+        printf(" Reading in calibration file %s\n", argv[i+1] );
+        ReadMielCalibration(argv[i+1]);
+      } else if (strcmp(argv[i], "-f") == 0) {
+        for (int z=i+1; z<argc; z++) {
+          
+	    printf(" Reading file %s\t--\t", argv[z]);
+	    string inputname = argv[z];
+      string outputname = inputname;	
+      size_t pos = inputname.find(".root");
+	    outputname.insert(pos, "_data");	
+	    printf("Output file %s\n", outputname.c_str());
 	
 	// point to the input and output files
 	gInputFile = new TFile(inputname.c_str());
@@ -112,18 +124,18 @@ for(int i=1;i<argc;i++)	{
 	cout << "Tree contains " << nentries <<endl;
 	
 				
-	for (Int_t i=0 ; i < nentries; i++) {
+	for (Int_t j=0 ; j < nentries; j++) {
 		
 		//Get the entry and set the events in the new Tree
 		GoodEvent=false; 
 		//cout << "Event Number : " << i <<endl;
 		//gOldTree->Scan("*","","",1,i);
-		GetEvent(i);	
+		GetEvent(j);	
 
-		for (int j = 0 ; j < 6 ; j++ ) {
-			if (gBuffer_energy.at(j) > 0) { // keep this good event
+		for (int k = 0 ; k < 6 ; k++ ) {
+			if (gBuffer_energy.at(k) > 0) { // keep this good event
 				GoodEvent=true; 
-				gMielData->SetMiel(j/*segment*/, gBuffer_energy.at(j), CalibrateEnergy(j,gBuffer_energy.at(j)), gBuffer_time.at(j)) ;
+				gMielData->SetMiel(k, gBuffer_energy.at(k), CalibrateMielEnergy(k,gBuffer_energy.at(k)), gBuffer_time.at(k)) ;
 			}
 		}
 		
@@ -147,10 +159,12 @@ for(int i=1;i<argc;i++)	{
 	gOutputFile->Close();  
 	
 } //end of input files 
-	
-return 0 ; 	
 } 
+} // if not end of argument list
+}  // end of arguments	
+return 0 ; 	
 
+}
 
 // #########################################################################################
 //                                functions start here 
@@ -263,10 +277,36 @@ void GetEvent(int i){
 
 } 
 
+void ReadMielCalibration(string fFilename) {
+
+  int sSeg;
+  double sLin, sGain, sQuad;  
+
+  ifstream sCalFile(fFilename);
+  if (sCalFile.is_open()) {
+    while ( true )  {
+      sCalFile >> sSeg >> sLin >> sGain >> sQuad;
+      if ( sCalFile.eof()) break;
+      vector<double> sVector;
+      sVector.push_back(sLin);
+      sVector.push_back(sGain);
+      sVector.push_back(sQuad);
+      gCalibration.push_back(sVector);
+    }
+    sCalFile.close(); 
+  } else cout << "Unable to open file" << endl;
+
+  int size = gCalibration.size();
+  printf("\tRead in %d miel channels\n", size);
+
+}
+
 // ##############################
-float CalibrateEnergy(int segment, int E_charge) {
-//need to implement
-return E_charge ; 
+float CalibrateMielEnergy(int segment, int E_charge) {
+  float temp = 0;
+  for (int i=0; i<gCalibration.at(segment).size(); i++)
+    temp += gCalibration.at(segment).at(i) * pow(E_charge, i);
+  return E_charge ; 
 }
 
 // ##############################
