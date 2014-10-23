@@ -32,7 +32,9 @@ class TMielData : public TObject {
 	inline void SetSegment(UShort_t Seg)	{	fMielSegment.push_back(Seg);	} 
 	inline void SetCharge(Int_t Charge)	{	fMielCharge.push_back(Charge);	} 	
 	inline void SetEnergy(Double_t Energy)	{	fMielEnergy.push_back(Energy);	}		
-	inline void SetTime(Int_t Time)		{	fMielTime.push_back(Time);		}		
+	inline void SetTime(vector<UInt_t> Time)		{	
+    for (int i=0; i<5; i++) {   
+      if (Time[i] != 0) fMielTime.push_back(Time[i]);	}	}		
 
 	inline void SetAptherix(Int_t Aptherix)	{	fMielAptherix=(Aptherix);	} 
 	inline void SetHallProbe(Int_t HallProbe)	{	fMielHallProbe=(HallProbe);	} 	
@@ -40,7 +42,7 @@ class TMielData : public TObject {
 	inline void SetVContG(Int_t VcontG)		{	fMielVcontG=(VcontG);	}	
 
 	// Set all Simultaneously	
-	inline void SetMiel(UShort_t Seg, UInt_t Charge, Double_t Energy, UInt_t Time)	{
+	inline void SetMiel(UShort_t Seg, UInt_t Charge, Double_t Energy, vector<UInt_t> Time)	{
 				SetSegment(Seg); 
 				SetCharge(Charge);	
 				SetEnergy(Energy);	
