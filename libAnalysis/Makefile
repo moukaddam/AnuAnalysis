@@ -31,7 +31,7 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 # Specify Shared libraries
 #-------------------------
-SHARELIB      = libMielData.so 
+SHARELIB      = libMielData.so libMielHit.so 
 
 all:            $(SHARELIB)
 
@@ -43,6 +43,12 @@ TMielDataDict.cpp:	TMielData.h  Linkdef.h
 libMielData.so:	TMielData.o   TMielDataDict.o
 		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
 
+TMielHitDict.cpp:	TMielHit.h  Linkdef.h
+			rootcint -f $@ -c $^
+			
+libMielHit.so:	TMielHit.o   TMielHitDict.o
+		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
+		
 
 #------------------------------------------------------------------------------
 clean:
@@ -60,3 +66,4 @@ distclean:
 # Manage dependancies
 #-------------------------
 TMielData.o:		TMielData.cpp		TMielData.h
+TMielHit.o:		TMielHit.cpp		TMielHit.h

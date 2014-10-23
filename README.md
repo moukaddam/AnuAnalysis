@@ -27,3 +27,8 @@ convert      : dcp2root.cxx  executable { converts "XXXX.RUNYYY" to "XXXX.RUNYYY
 struct2class.cxx  : code that convertsbasic root tree to a more compact (vectorial) root tree (compile and execute as described in the first comment on the top of struct2class.cxx )  
 struct2class      : struct2class.cxx  executable { converts "XXXX.RUNYYY.root" to "Data_XXXX.RUNYYY.root" }
                     e.g. > ./struct2class  FE54_0713.RUN004.root
+                    
+                    
+Analysis classes : 
+------------------
+To be implemented 
