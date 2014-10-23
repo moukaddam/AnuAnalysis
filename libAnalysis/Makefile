@@ -14,7 +14,7 @@ OutPutOpt     = -o
 
 # Compilateur et options
 CXX           = g++
-CXXFLAGS      = -O -Wall -fPIC 
+CXXFLAGS      = -O -Wall -fPIC -std=c++0x
 LD            = g++
 SOFLAGS       = -shared 
 LDFLAGS       = -O 
@@ -31,25 +31,25 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 # Specify Shared libraries
 #-------------------------
-SHARELIB      = libMielData.so libMielHit.so 
-
+SHARELIB      = libMielData.so libMielHit.so libMielEvent.so
 all:            $(SHARELIB)
 
 # Create dictionaries
 #-------------------------
-TMielDataDict.cpp:	TMielData.h  Linkdef.h
-			rootcint -f $@ -c $^
-			
+TMielDataDict.cpp:	TMielData.h 
+			rootcint -f $@ -c $^		
 libMielData.so:	TMielData.o   TMielDataDict.o
 		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
-
-TMielHitDict.cpp:	TMielHit.h  Linkdef.h
-			rootcint -f $@ -c $^
-			
+#---
+TMielHitDict.cpp:	TMielHit.h 
+			rootcint -f $@ -c $^	
 libMielHit.so:	TMielHit.o   TMielHitDict.o
 		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
-		
-
+#---		
+TMielEventDict.cpp:	TMielEvent.h 
+			rootcint -f $@ -c $^	
+libMielEvent.so:	TMielEvent.o   TMielEventDict.o
+		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
 #------------------------------------------------------------------------------
 clean:
 	@rm -f core *~ *.o *Dict*
@@ -66,4 +66,5 @@ distclean:
 # Manage dependancies
 #-------------------------
 TMielData.o:		TMielData.cpp		TMielData.h
-TMielHit.o:		TMielHit.cpp		TMielHit.h
+TMielHit.o:			TMielHit.cpp		TMielHit.h
+TMielEvent.o:		TMielEvent.cpp		TMielEvent.h

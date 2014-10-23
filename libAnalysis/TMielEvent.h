@@ -1,17 +1,19 @@
 #ifndef __MielEVENT__
 #define __MielEVENT__
 
+//c++
 #include <vector>
+//Root
 #include "TObject.h"
-#include "TMielHit.h"
 #include "TVector3.h"
+//User
+#include "TMielHit.h"
 
 class TMielEvent : public TObject {
 
 	private:
 	std::vector<TMielHit*>	fHits; //singles
-	//flags 
-	UShort_t fPattern;
+	UShort_t fPattern;	           //flag
 
 	public:
 // C O N S T R U C T O R / D E S T R U C T O R
@@ -25,11 +27,11 @@ class TMielEvent : public TObject {
 	TMielHit*    Add(std::vector<TMielHit*>);
 	
 // S E T T E R S
-	inline void SetHits(std::vector<TMielHit*> vec)	{	fHits = vec ; GetPattern() ;} 
-	inline void PushHit(TMielHit*)					{	fHits.push_back(TMielHit*);	GetPattern() ; } 
+	void SetHits(std::vector<TMielHit*> vec) ;	
+	void PushHit(TMielHit*)	;
 
 // G E T T E R S
-	unsigned short GetPattern() ; 	
+	unsigned GetPattern() ; 	
 	inline TMielHit* GetHit(UShort_t i )		{	return fHits.at(i);	}
 	inline std::vector<TMielHit*> GetHits()		{	return fHits ;	} 	
 	

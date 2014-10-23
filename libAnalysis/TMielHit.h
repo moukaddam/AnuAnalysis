@@ -29,6 +29,7 @@ class TMielHit : public TObject {
 // F U N C T I O N  M E M B E R S
 	void	Clear(); 
 	void	Print(); 
+	TMielHit* Copy(TMielHit* hit) ; 
 	
 // S E T T E R S
 	inline void SetSegment(UShort_t Seg)	{	fSegment=(Seg);	 CalculatePosition(); } 
@@ -48,7 +49,7 @@ class TMielHit : public TObject {
 	inline UShort_t GetSegment()	{	return fSegment;	}	
 	inline Double_t GetEnergy()		{	return fEnergy;		}
 	inline Double_t GetTime()		{	return fTime;		}
-	inline Double_t GetPosition()	{	return fPosition;	}		
+	inline TVector3 GetPosition()	{	return fPosition;	}		
 	
 
 	ClassDef(TMielHit,1)  // MielHit structure

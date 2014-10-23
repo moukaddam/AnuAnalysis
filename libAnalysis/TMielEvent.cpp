@@ -1,9 +1,13 @@
 /*****************************************************************************
  * Author: Mhd Moukaddam  contact address: moukaddam@triumf.ca      		 *
  *---------------------------------------------------------------------------*
- * Decription: This class stores the segment energy and time.
-               It is the first step of the analysis procedure, th ebuilding stone 
-               of any add back scheme 
+ * Decription: This class is the core of the analysis 
+ 			A miel event will contain all the information of a hit in the SiLi 
+ 			All type of Add back schemes should be implemented here.
+ 			Everything that is unique to an event (such as the singles patterns)
+ 			Should go here.
+ 			From this class instance one can withdraw a vector of hit 
+ 			related to a certain add-back scheme
  *---------------------------------------------------------------------------*
  * Comment:                                                                  *
  *                                                                           *
@@ -16,11 +20,12 @@ using namespace std;
 
 // User classes
 #include "TMielEvent.h"
+#include "TMielHit.h"
 
 //Root 
 ClassImp(TMielEvent)
 
-// -------------------------
+
 
 TMielEvent::TMielEvent() {
    Clear();
@@ -40,14 +45,24 @@ void TMielEvent::Clear() {
 void TMielEvent::Print() {
 	cout << "  - M I E L  E V E N T -  \n" ;
 	cout << "==========================\n" ; 
-	for (int i = 0 ; i < fHits.size() ; i++ ) {
+	for (unsigned i = 0 ; i < fHits.size() ; i++ ) {
 		fHits.at(i)->Print();
 		}
 	cout << "\n-------------------------\n" ; 
-
 }
 
-unsigned short TMielEvent::GetPattern() {
+
+ void TMielEvent::SetHits( vector<TMielHit*> vec)	{	
+ fHits = vec ; 
+ GetPattern() ;
+ } 
+ 
+ void TMielEvent::PushHit(TMielHit* hit) {
+ fHits.push_back(hit);
+ GetPattern() ; 
+ } 
+	
+unsigned TMielEvent::GetPattern() {
 
 /*
 This functions return the pattern of the fired segments, 1 for hit, 0 for no-hit, it uses the vector sum to tag the different patterns
@@ -64,7 +79,7 @@ fold-{patterns}
 	6-{111111}
 */
 
-Double_t epsilon= 0.001 ; // small length to compare magnitudes a magnitude < epsilon it is practically zero
+Double_t epsilon= 0.001 ; // small length to compare magnitudes, if magnitude < epsilon is practically zero
 
 //simple cases 
 	if (fHits.size()==1) return 100000;
@@ -76,11 +91,11 @@ Double_t epsilon= 0.001 ; // small length to compare magnitudes a magnitude < ep
 	TVector3 A = fHits.at(0)->GetPosition() ; 
 	TVector3 B = fHits.at(1)->GetPosition() ;
 	// reduce to polar coordinates only
-	 A = A.SetXYZ(A.X(),A.Y(),0) ; 
-	 B = B.SetXYZ(B.X(),B.Y(),0) ;
+	 A.SetXYZ(A.X(),A.Y(),0) ; 
+	 B.SetXYZ(B.X(),B.Y(),0) ;
 	 TVector3 Sum = A + B ; 
 	 
-	 if (Sum.Mag() > A.Mag ) return 110000 ;
+	 if (Sum.Mag() > A.Mag() ) return 110000 ;
 	 else if (Sum.Mag() < epsilon ) return 100100 ;
 	 	  else return 101000;
 
@@ -91,12 +106,12 @@ Double_t epsilon= 0.001 ; // small length to compare magnitudes a magnitude < ep
 	TVector3 B = fHits.at(1)->GetPosition() ;
 	TVector3 C = fHits.at(2)->GetPosition() ; 
 	// reduce to polar coordinates only
-	 A = A.SetXYZ(A.X(),A.Y(),0) ; 
-	 B = B.SetXYZ(B.X(),B.Y(),0) ;
-	 C = C.SetXYZ(C.X(),C.Y(),0) ;
+	 A.SetXYZ(A.X(),A.Y(),0) ; 
+	 B.SetXYZ(B.X(),B.Y(),0) ;
+	 C.SetXYZ(C.X(),C.Y(),0) ;
 	 TVector3 Sum = A + B + C ; 
 	 
-	 if (Sum.Mag() > A.Mag ) return 111000 ;
+	 if (Sum.Mag() > A.Mag() ) return 111000 ;
 	 else if (Sum.Mag() < epsilon ) return 101010 ;
 	 	  else return 110100;
 	}
@@ -108,156 +123,152 @@ Double_t epsilon= 0.001 ; // small length to compare magnitudes a magnitude < ep
 	TVector3 C = fHits.at(2)->GetPosition() ;
 	TVector3 D = fHits.at(3)->GetPosition() ; 
 	// reduce to polar coordinates only
-	 A = A.SetXYZ(A.X(),A.Y(),0) ; 
-	 B = B.SetXYZ(B.X(),B.Y(),0) ;
-	 C = C.SetXYZ(C.X(),C.Y(),0) ;
-	 D = C.SetXYZ(C.X(),C.Y(),0) ;
+	 A.SetXYZ(A.X(),A.Y(),0) ; 
+	 B.SetXYZ(B.X(),B.Y(),0) ;
+	 C.SetXYZ(C.X(),C.Y(),0) ;
+	 D.SetXYZ(D.X(),D.Y(),0) ;
 
 	 TVector3 Sum = A + B + C + D;
 	 
-	 if (Sum.Mag() > A.Mag ) return 111100 ;
+	 if (Sum.Mag() > A.Mag() ) return 111100 ;
 	 else if (Sum.Mag() < epsilon ) return 1101100 ;
 	 	  else return 111010;
 	}
 
-
+	// by default
+	return 000000; 
 }
 
-TMielEvent*  Add(std::vector<TMielHit*> hits) { // Add a vector of hits 
+TMielHit*  TMielEvent::Add( vector<TMielHit*> hits) { // Add a vector of hits 
 
-TMielEvent* dummy ; 
+TMielHit* aMielHit = new TMielHit(); 
 
 //calculate full energy 
 double   full = 0  ;
 unsigned index = 0  ; // tag maximum energy
-for (int i = 0 ; i < hits.size() ; i++ ) {
+for (unsigned i = 0 ; i < hits.size() ; i++ ) {
 	full = full + hits.at(i)->GetEnergy();
 	if (hits.at(index)->GetEnergy() < hits.at(i)->GetEnergy() ) index=i ;
 	}
-dummy->SetEnergy(full) ; 
+aMielHit->SetEnergy(full) ; 
 	
 	
 //calculate segment 
-unsigned segment = 0 ; 
-for (int i = 0 ; i < hits.size() ; i++ ) {
-	segment = segment + hits.at(i)->GetSegment());  // e.g if segment 1+2 => Segment = 12
+unsigned short segment = 0 ; 
+for (unsigned i = 0 ; i < hits.size() ; i++ ) {
+	segment = segment + hits.at(i)->GetSegment();  // e.g if segment 1+2 => Segment = 12
 	}
-dummy->SetSegment(segment) ; 
+aMielHit->SetSegment(segment) ; 
 	
 	
 //calculate time 
-dummy->SetTime(hits.at(index)->GetTime();
+aMielHit->SetTime(hits.at(index)->GetTime());
 
 
 //calculate position
-TVector3 position = hits.begin()->GetPosition(); // copy one position (to keep cylindrical Z and R)
+TVector3 position = hits.at(0)->GetPosition(); // copy one position (to keep cylindrical Z and R)
 double phi=0 ;  
-for (int i = 0 ; i < hits.size() ; i++ ) {
-	phi = phi + ( hits.at(i)->GetPosition()->GetPhi() * (hits.at(i)->GetEnergy()/full) );  // weighted position
+for (unsigned i = 0 ; i < hits.size() ; i++ ) {
+	phi = phi + ( hits.at(i)->GetPosition().Phi() * (hits.at(i)->GetEnergy()/full) );  // weighted position
 	}
 position.SetPhi(phi);  
-dummy->SetPosition(position);
+aMielHit->SetPosition(position);
 	
-	return dummy ; 
+	return aMielHit ; 
 }
 
 		//Add-Back schemes 
 		
-std::vector<TMielHit*> SumHits(){  // Calorimeter mode, sums all the hits and returns a singleton vector
+ vector<TMielHit*> TMielEvent::SumHits(){  // Calorimeter mode, sums all the hits and returns a singleton vector
 
-	std::vector<TMielHit*> vec{ Add(fHits) };
+	 vector<TMielHit*> vec{ Add(fHits) };
 	return vec ; 
 	}
 	
-std::vector<TMielHit*> ClusterHits() {  // Cluster mode, only those hits with touching segments are summed
+ vector<TMielHit*> TMielEvent::ClusterHits() {  // Cluster mode, only those hits with touching segments are summed
 
 //simple cases return sum of hits 
-	if (fHits.size()==1) return SumHits(fHits); 
-	if (fHits.size()==6) return SumHits(fHits);
-	if (fHits.size()==5) return SumHits(fHits);
+	if (fHits.size()==1) return  SumHits(); 
+	if (fHits.size()==6) return  SumHits();
+	if (fHits.size()==5) return  SumHits();
+
 
 //other cases 	 
 	if (fHits.size()==2){
-		TMielHit* A = fHits.at(0) ; 
-		TMielHit* B = fHits.at(1) ;
 		// test if the segments are touching
 		 if ( fPattern==110000 ) {
-			std::vector<TMielHit*> vec; 
-			vec.push_back(Add(hits));
-			return sum ; 
-		   ;
-		 else return hits;
+				return SumHits() ;
+				} 
+		 else return fHits;
 		}
-
+		
+		
 	if (fHits.size()==3){
-		//simple case 
-		if (fPattern==111000) return SumHits(hits) ; // sum of all
-		if (fPattern==101010) return hits ; // unchanged 
+		//simple cases 
+		if (fPattern==111000) return SumHits() ; // sum of all
+		if (fPattern==101010) return fHits; // unchanged 
+	    
+	    //other case 
 	    if (fPattern==110100) {
-	    //copy hits 
-	    std::vector<TMielHit*> hits_new ;
-	    //initiate the new hits 
-
 	    //Get the hits one by one 
 		TMielHit* A = fHits.at(0) ; 
 		TMielHit* B = fHits.at(1) ;
 		TMielHit* C = fHits.at(2) ;
-		
-		std::vector<TMielHit*>  cluster1 ;
-	    std::vector<TMielHit*>  cluster2 ; 
+
+		vector<TMielHit*>  aHitCluster1 ;
+		vector<TMielHit*>  aHitCluster2 ; 
 	    
-	    cluster1.push_back(A) ; 
+	    aHitCluster1.push_back(A) ; 
 		if (Contact(A,B)) {
-			cluster1.push_back(B) ; // Add hits returns a TMielHit*
-			cluster2.push_back(C) ; 
+			aHitCluster1.push_back(B) ; 
+			aHitCluster2.push_back(C) ; 
 		}
 		else {
-			cluster1.push_back(C);
-			cluster2.push_back(B);
+			aHitCluster1.push_back(C);
+			aHitCluster2.push_back(B);
 		}
 		
 		//build the new hits and return it
-			//hits_new.push_back(Add(cluster1));
-	    	//hits_new.push_back(Add(cluster2));
-			return std::vector<TMielHit*> vec{ Add(cluster1), Add(cluster2) };	   	
-	    }	 	  
-		
+		//hits_new.push_back(Add(aHitCluster1));
+		//hits_new.push_back(Add(aHitCluster2));
+		vector<TMielHit*> vec{ Add(aHitCluster1), Add(aHitCluster2) }; // Add hits returns a TMielHit*
+		return  vec ;	
+	    }	 	  	
 	}
 
 
 	if (fHits.size()==4){
 			//simple case 
-		if (fPattern==111100) return SumHits(hits) ; // sum of all
+		if (fPattern==111100) return SumHits() ; // sum of all
 		else {
 				TMielHit* A = fHits.at(0); 
 				TMielHit* B = fHits.at(1);
 				TMielHit* C = fHits.at(2);
 				TMielHit* D = fHits.at(3); 
 
-				std::vector<TMielHit*>  cluster1 ;
-				std::vector<TMielHit*>  cluster2 ; 
+				vector<TMielHit*>  aHitCluster1 ;
+				vector<TMielHit*>  aHitCluster2 ; 
 	
-				cluster1.push_back(A) ; 
+				aHitCluster1.push_back(A) ;
+				 
 				if (fPattern==110110){
-	
 					if (Contact(A,B)){			
-					cluster1.push_back(B) ; // Add hits returns a TMielHit*
-					cluster2.push_back(C) ;
-					cluster2.push_back(D) ;
-					return std::vector<TMielHit*> vec{ Add(cluster1), Add(cluster2) };	
+					aHitCluster1.push_back(B) ; // Add hits returns a TMielHit*
+					aHitCluster2.push_back(C) ;
+					aHitCluster2.push_back(D) ;
 					}
 					else if (Contact(A,C)){
-						cluster1.push_back(C) ; // Add hits returns a TMielHit*
-						cluster2.push_back(B) ;
-						cluster2.push_back(D) ;
-						return std::vector<TMielHit*> vec{ Add(cluster1), Add(cluster2) };	
+						aHitCluster1.push_back(C) ; // Add hits returns a TMielHit*
+						aHitCluster2.push_back(B) ;
+						aHitCluster2.push_back(D) ;
 						}
 						else {
-							cluster1.push_back(D) ; // Add hits returns a TMielHit*
-							cluster2.push_back(B) ;
-							cluster2.push_back(C) ;
-							return std::vector<TMielHit*> vec{ Add(cluster1), Add(cluster2) };	
-						}	
+							aHitCluster1.push_back(D) ; // Add hits returns a TMielHit*
+							aHitCluster2.push_back(B) ;
+							aHitCluster2.push_back(C) ;
+						}
+				vector<TMielHit*> vec{ Add(aHitCluster1), Add(aHitCluster2) }; // Add hits returns a TMielHit*
+				return  vec ;		
 				}
 		
 				if(fPattern==111010){
@@ -267,36 +278,40 @@ std::vector<TMielHit*> ClusterHits() {  // Cluster mode, only those hits with to
 					TVector3 vD = fHits.at(3)->GetPosition() ; 
 		
 					// reduce to polar coordinates only
-					vA = vA.SetXYZ(vA.X(),vA.Y(),0) ; 
-					vB = vB.SetXYZ(vB.X(),vB.Y(),0) ;
-					vC = vC.SetXYZ(vC.X(),vC.Y(),0) ;
-					vD = vC.SetXYZ(vC.X(),vC.Y(),0) ;
+					vA.SetXYZ(vA.X(),vA.Y(),0) ; 
+					vB.SetXYZ(vB.X(),vB.Y(),0) ;
+					vC.SetXYZ(vC.X(),vC.Y(),0) ;
+					vC.SetXYZ(vC.X(),vC.Y(),0) ;
 
 					TVector3 Sum = vA + vB + vC + vD; // the Sum-vector makes an angle of 180 degrees with the position vector of the lonesome segment
 		
-					if (Sum.Dot(vA) < 0)  { cluster1 = { vA }; cluster2 = { vB,vC,vD }; }
-						else if (Sum.Dot(vB) < 0)  { cluster1 = { vB }; cluster2 = { vA,vC,vD }; }
-							else if (Sum.Dot(vC) < 0)  { cluster1 = { vC }; cluster2 = { vA,vB,vD }; }
-								else { cluster1 = { vD }; cluster2 = { vA,vB,vC }; }
+					if (Sum.Dot(vA) < 0)  				{ aHitCluster1 = { A }; aHitCluster2 = { B,C,D }; }
+						else if (Sum.Dot(vB) < 0)  		{ aHitCluster1 = { B }; aHitCluster2 = { A,C,D }; }
+							else if (Sum.Dot(vC) < 0)  	{ aHitCluster1 = { C }; aHitCluster2 = { A,B,D }; }
+								else 					{ aHitCluster1 = { D }; aHitCluster2 = { A,B,C }; }
 		
-		 			return std::vector<TMielHit*> vec{ Add(cluster1), Add(cluster2) };	
-				}
-			}
-	}
+		 			vector<TMielHit*> vec{ Add(aHitCluster1), Add(aHitCluster2) }; // Add hits returns a TMielHit*
+					return  vec ;	
+				}// end of case 111010 
+			} // end of non-trivial case of 4 multiplicity
+	}// end of case = 4 
 	
+	// by default
+	return fHits; // unchanged 
 }
 	
-bool Contact(TMielHit* SegmentA, TMielHit* SegmentB){
+bool TMielEvent::Contact(TMielHit* SegmentA, TMielHit* SegmentB){
 	
 	TVector3 A = SegmentA->GetPosition() ; 
 	TVector3 B = SegmentB->GetPosition() ;
 	// reduce to polar coordinates only
-	 A = A.SetXYZ(A.X(),A.Y(),0) ; 
-	 B = B.SetXYZ(B.X(),B.Y(),0) ;
+	 A.SetXYZ(A.X(),A.Y(),0) ; 
+	 B.SetXYZ(B.X(),B.Y(),0) ;
 	 TVector3 Sum = A + B ; 
 	 
-	 if (Sum.Mag() > A.Mag ) return true ;
-	 else return false;
+	 if (Sum.Mag() > A.Mag() ) return true ;
+	 else 
+	 return false;
 	
 }
 	

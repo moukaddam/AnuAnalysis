@@ -38,7 +38,7 @@ void TMielHit::Clear() {
 }
 
 
-void CalculatePosition()	{	
+void TMielHit::CalculatePosition()	{	
 fPosition.SetXYZ(1,1,distance_to_target) ;	
 fPosition.SetPhi( (fSegment + 0.5)*phi_pitch ) ; 
 fPosition.SetPerp(mid_radius) ;
@@ -51,7 +51,7 @@ void TMielHit::Print() {
 	cout << " Segment : " << fSegment <<"\n" ;
 	cout << " Energy : " << fEnergy <<"\n" ;
 	cout << " Time : " << fTime <<"\n" ;
-	cout << " Position : \n" <<"X\tY\tZ\n"<< fPostion.X()<<"\t"<< fPostion.Y() <<"\t"<< fPostion.Z() << endl ;
+	cout << " Position : \n" <<"X\tY\tZ\n"<< fPosition.X()<<"\t"<< fPosition.Y() <<"\t"<< fPosition.Z() << endl ;
 	cout << "\n-------------------------\n" ; 
 
 }
