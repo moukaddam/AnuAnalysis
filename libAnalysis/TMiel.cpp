@@ -23,7 +23,8 @@ ClassImp(TMiel)
 // -------------------------
 
 TMiel::TMiel() {
-   Clear();
+	fMielEvent = new TMielEvent(); 
+	Clear();
 }
 
 TMiel::~TMiel() {
@@ -31,7 +32,7 @@ TMiel::~TMiel() {
 
 
 void TMiel::Clear() {
-	fEvent.Clear(); 
+	fMielEvent->Clear(); 
 	fSum.clear(); 
 	fCluster.clear(); 
 }
@@ -42,14 +43,14 @@ void TMiel::Print() {
 	cout << "       - M I E L  -       \n" ;
 	cout << "==========================\n" ; 
 		
-	fEvent->Print();
+	fMielEvent->Print();
 
 	cout << "\n-----------C L U S T E R--------------\n" ; 
-		for (int i = 0 ; i < fSum.size() ; i++ ) {
+		for (unsigned i = 0 ; i < fSum.size() ; i++ ) {
 		fSum.at(i)->Print();
 		}
 	cout << "\n-----------S U M -------------\n" ; 
-		for (int i = 0 ; i < fSum.size() ; i++ ) {
+		for (unsigned i = 0 ; i < fSum.size() ; i++ ) {
 		fSum.at(i)->Print();
 		}
 	cout << "\n-------------------------\n" ; 
@@ -58,22 +59,27 @@ void TMiel::Print() {
 
 void TMiel::BuildHits(){
 	
-	fSum = fEvent.SumHits() ; 
-	fCluster = fEvent.ClusterHits() ;
+	fSum = fMielEvent->SumHits() ; 
+	fCluster = fMielEvent->ClusterHits() ;
 	
-	//other Add-back schemes goes here 
+	//other Add-back schemes CALLS goes here 
 	//...
 }
 
 
-void TMiel::SetMielEvent(TMielData* data){
-
-// Take the data elecron data from TMiel and store in a TMielEvent for fuurther procedure 
-//	use inline void TMielHit::Set(UShort_t Seg, Double_t Energy, UInt_t Time)	{...}
-// inline void TMielEvent::SetHits(std::vector<TMielHit*> vec)	{...} 
-//
-
-
+void TMiel::SetMielEvent(TMielData* data){ // Take the elecron data from TMielData and store in a the TMielEvent of this class for further procedure 
+ 
+	TMielHit* aMielHit = new TMielHit(); 
+	unsigned mult = data->GetMultiplicity() ; 	
+	for (unsigned i = 0 ; i < mult ; i++ ) {
+		unsigned segment = data->GetSegment(i); 
+		double    energy = data->GetEnergy(i);
+		int       time   = (int) data->GetTime(i);
+		aMielHit->Set(segment, energy, time) ;
+		fMielEvent->PushHit(aMielHit);
+		//clear
+		aMielHit->Clear();
+	}
 }
 
 

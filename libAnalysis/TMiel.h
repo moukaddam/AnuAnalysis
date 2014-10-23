@@ -14,9 +14,9 @@
 class TMiel : public TObject {
 
 	private:
-	TMielEvent	fMielEvent; //Already contains singles and hit pattern
-	std::vector<TMielHit*>	fSum; //sum, calorimeter mode
-	std::vector<TMielHit*>	fCluster; //cluster mode
+	TMielEvent*	fMielEvent; //Already contains singles and hit pattern
+	std::vector<TMielHit*>	fSum; // calorimeter mode sum of all segments (generates a multiplicity 1 )
+	std::vector<TMielHit*>	fCluster; //cluster mode (generates a multiplicity 1, 2 and 3 )
 
 
 	public:

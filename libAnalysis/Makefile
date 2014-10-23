@@ -31,7 +31,7 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 # Specify Shared libraries
 #-------------------------
-SHARELIB      = libMielData.so libMielHit.so libMielEvent.so
+SHARELIB      = libMielData.so libMielHit.so libMielEvent.so libMiel.so
 all:            $(SHARELIB)
 
 # Create dictionaries
@@ -49,6 +49,11 @@ libMielHit.so:	TMielHit.o   TMielHitDict.o
 TMielEventDict.cpp:	TMielEvent.h 
 			rootcint -f $@ -c $^	
 libMielEvent.so:	TMielEvent.o   TMielEventDict.o
+		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
+#---
+TMielDict.cpp:	TMiel.h 
+			rootcint -f $@ -c $^	
+libMiel.so:	TMiel.o   TMielDict.o
 		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
 #------------------------------------------------------------------------------
 clean:
@@ -68,3 +73,4 @@ distclean:
 TMielData.o:		TMielData.cpp		TMielData.h
 TMielHit.o:			TMielHit.cpp		TMielHit.h
 TMielEvent.o:		TMielEvent.cpp		TMielEvent.h
+TMiel.o:			TMiel.cpp			TMiel.h
