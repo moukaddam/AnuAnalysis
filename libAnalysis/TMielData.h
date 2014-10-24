@@ -18,6 +18,7 @@ class TMielData : public TObject {
 	Int_t		fMielHallProbe; 
 	Int_t		fMielVcontE; 
 	Int_t		fMielVcontG; 
+  Int_t   fMielChopper;
 
 	public:
 // C O N S T R U C T O R / D E S T R U C T O R
@@ -40,6 +41,7 @@ class TMielData : public TObject {
 	inline void SetHallProbe(Int_t HallProbe)	{	fMielHallProbe=(HallProbe);	} 	
 	inline void SetVcontE(Int_t VcontE)		{	fMielVcontE=(VcontE);	}		
 	inline void SetVContG(Int_t VcontG)		{	fMielVcontG=(VcontG);	}	
+  inline void SetChopper(Int_t Chopper) { fMielChopper=(Chopper); }
 
 	// Set all Simultaneously	
 	inline void SetMiel(UShort_t Seg, UInt_t Charge, Double_t Energy, vector<UInt_t> Time)	{
@@ -61,6 +63,8 @@ class TMielData : public TObject {
 	inline UInt_t 	GetHallProbe(UInt_t i)	{	return fMielHallProbe;	}		
 	inline Double_t GetVcontE(UInt_t i)		{	return fMielVcontE;	}
 	inline UShort_t GetVcontG(UInt_t i)		{	return fMielVcontG;	}
+
+  inline UShort_t GetChopper(UInt_t i)  { return fMielChopper; }
 	
 
 	ClassDef(TMielData,1)  // MielData structure

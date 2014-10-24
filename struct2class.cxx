@@ -48,7 +48,7 @@ using namespace std;
 // **************************************************************
 struct Miel_st {
  UShort_t Miel1E;  UShort_t Miel2E; UShort_t Miel3E; UShort_t Miel4E; UShort_t Miel5E; UShort_t Miel6E;  
- UShort_t Aptherix; UShort_t HallProbe; UShort_t VcontE; UShort_t VcontG;
+ UShort_t Aptherix; UShort_t HallProbe; UShort_t VcontE; UShort_t VcontG; UShort_t Chopper;
  UShort_t MielT1T2; UShort_t MielT1T3; UShort_t MielT1T4; UShort_t MielT1T5; UShort_t MielT1T6; 
                     UShort_t MielT2T3; UShort_t MielT2T4; UShort_t MielT2T5; UShort_t MielT2T6;
                                        UShort_t MielT3T4; UShort_t MielT3T5; UShort_t MielT3T6;
@@ -74,6 +74,7 @@ UShort_t gBuffer_gamma ;
 UShort_t gBuffer_hall ; 
 UShort_t gBuffer_VContE ;  
 UShort_t gBuffer_VContG ; 	
+UShort_t gBuffer_Chopper ;
 
 vector < vector<double> > gCalibration;
 vector <double> gTimeCalibration;
@@ -188,6 +189,11 @@ int main(int argc, char **argv) {
 		gMielData->SetHallProbe(gBuffer_hall);
 		gMielData->SetVcontE(gBuffer_VContE);	
 		gMielData->SetVContG(gBuffer_VContG);
+    	gMielData->SetChopper(gBuffer_Chopper);
+		
+		//gMielData->Print();
+		gNewTree->Fill();		
+		}
 
 		if (GoodEvent){
 			//gMielData->Print();
@@ -319,7 +325,8 @@ void ResetBuffers(){
 	gBuffer_hall =   -1;
 	gBuffer_VContE =  -1; 
 	gBuffer_VContG =  -1;
-	
+  gBuffer_Chopper = -1;	
+
 	gBuffer_energy.resize(6,-1); 
 	gBuffer_time.resize(15,-1);
 	
@@ -370,6 +377,8 @@ void GetEvent(int i){
 		//Normalizing parameters
 	gBuffer_VContE =  gMiel_st.VcontE; 
 	gBuffer_VContG =   gMiel_st.VcontG;	
+
+  gBuffer_Chopper = gMiel_st.Chopper;
 
 } 
 
