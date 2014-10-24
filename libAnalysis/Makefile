@@ -3,7 +3,8 @@
 #
 # Copyright (c) 2000 Rene Brun and Fons Rademakers
 #
-# Author: Fons Rademakers, 29/2/2000
+# Original Author: Fons Rademakers, 29/2/2000
+# Modified       : Mohamad Moukaddam // moukaddam@triumf.ca
 
 # Extensions des fichiers
 ObjSuf        = o
@@ -31,7 +32,7 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 # Specify Shared libraries
 #-------------------------
-SHARELIB      = libMielData.so libMielHit.so libMielEvent.so libMiel.so
+SHARELIB      = libMielData.so libMielHit.so libMielEvent.so
 all:            $(SHARELIB)
 
 # Create dictionaries
@@ -49,11 +50,6 @@ libMielHit.so:	TMielHit.o   TMielHitDict.o
 TMielEventDict.cpp:	TMielEvent.h 
 			rootcint -f $@ -c $^	
 libMielEvent.so:	TMielEvent.o   TMielEventDict.o
-		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
-#---
-TMielDict.cpp:	TMiel.h 
-			rootcint -f $@ -c $^	
-libMiel.so:	TMiel.o   TMielDict.o
 		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
 #------------------------------------------------------------------------------
 clean:
@@ -73,4 +69,3 @@ distclean:
 TMielData.o:		TMielData.cpp		TMielData.h
 TMielHit.o:			TMielHit.cpp		TMielHit.h
 TMielEvent.o:		TMielEvent.cpp		TMielEvent.h
-TMiel.o:			TMiel.cpp			TMiel.h

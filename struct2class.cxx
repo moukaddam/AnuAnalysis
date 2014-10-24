@@ -1,6 +1,6 @@
 // #########################################################################################
 // compile :
-//  g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so libAnalysis/libMielEvent.so libAnalysis/libMiel.so\
+//  g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so libAnalysis/libMielEvent.so\
                 -IlibAnalysis --std=c++0x -o newstruct2class\
                 -O2 `root-config --cflags --libs`\
                 -lTreePlayer -lgsl -lgslcblas 
@@ -50,7 +50,7 @@ struct Miel_st {
  } gMiel_st; // old tree , struct based
 
 TMielData* gMielData; // new tree, data vector based branch, data organised, energy calibrated
-TMiel* gMiel; 		  // new tree, analysis branch, hitpattern, add-back
+TMielEvent* gMielEvent; 		  // new tree, analysis branch, hitpattern, add-back
 TTree *gNewTree ;
 TTree *gOldTree ;
 TFile *gInputFile; 
@@ -99,8 +99,8 @@ int main(int argc, char **argv) {
    // Analyse root files  
   bool GoodEvent=false; 
   gCalibrationRead=false;
-  gMielData = new TMielData(); 	// organise data
-  gMiel 	= new TMiel(); 		// analyse data
+  gMielData 	= new TMielData(); 	// organise data
+  gMielEvent 	= new TMielEvent(); // analyse data
   
 	for( unsigned z = 0 ; z<gRootFilesList.size(); z++)	{
 					  
@@ -124,8 +124,8 @@ int main(int argc, char **argv) {
 
 		//point to the new tree and set the addresses
 		gNewTree = new TTree("MielDataTree","MielDataTree");
-		gNewTree->Branch("TMielData",&gMielData);
-		gNewTree->Branch("TMiel",&gMiel);
+		gNewTree->Branch("TMielData",&gMielData,16000,99);
+		gNewTree->Branch("TMielEvent",&gMielEvent,16000,99);
 
 		//Iterate through events
 		Int_t nentries = (Int_t)gOldTree->GetEntries();
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 
 		//gammas
 		gMielData->SetAptherix(gBuffer_gamma);
-		//Control Measurments
+		//Control Measurements
 		gMielData->SetHallProbe(gBuffer_hall);
 		gMielData->SetVcontE(gBuffer_VContE);	
 		gMielData->SetVContG(gBuffer_VContG);
@@ -156,16 +156,16 @@ int main(int argc, char **argv) {
 			cout << " G O O D   E V E N T " << endl;
 			gMielData->Print();
 						
-			gMiel->SetMielEvent(gMielData);
-			gMiel->BuildHits();
+			gMielEvent->SetMielData(gMielData); // Calculate positions, patterns, etc..
+			gMielEvent->BuildAddBack(); //Calculate AddBack
 
-			gMiel->Print();
+			gMielEvent->Print();
 			getchar() ;
 		}
 		
 		gNewTree->Fill();	// fill the tree	
 		gMielData->Clear();
-		gMiel->Clear();
+		gMielEvent->Clear();
 	}
 
 // Write the new trees in seperate files 

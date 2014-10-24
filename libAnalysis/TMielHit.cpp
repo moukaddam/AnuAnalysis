@@ -1,8 +1,8 @@
 /*****************************************************************************
  * Author: Mhd Moukaddam  contact address: moukaddam@triumf.ca      		 *
  *---------------------------------------------------------------------------*
- * Decription: This class stores the segment energy and time.
-               It is the first step of the analysis procedure, th ebuilding stone 
+ * Decription: This class stores a hit : segment, energy and time.
+               It is the first step of the analysis procedure, the building stone 
                of any add back scheme 
  *---------------------------------------------------------------------------*
  * Comment:                                                                  *
@@ -61,7 +61,8 @@ void TMielHit::Print() {
 	cout << " Segment : " << fSegment <<"\n" ;
 	cout << " Energy : " << fEnergy <<"\n" ;
 	cout << " Time : " << fTime <<"\n" ;
-	cout << " Position : \n" <<"X\tY\tZ\n"<< fPosition.X()<<"\t"<< fPosition.Y() <<"\t"<< fPosition.Z() << endl ;
+	cout << " Position : " <<"X\tY\tZ\n" ;
+	cout << "            "<<fPosition.X()<<"\t"<< fPosition.Y() <<"\t"<< fPosition.Z() << endl ;
 	cout << "\n-------------------------\n" ; 
 
 }

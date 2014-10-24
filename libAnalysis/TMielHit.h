@@ -46,11 +46,11 @@ class TMielHit : public TObject {
 				}
 		
 	public:
-// G E T T E R S
-	inline UShort_t GetSegment()	{	return fSegment;	}	
-	inline Double_t GetEnergy()		{	return fEnergy;		}
-	inline Double_t GetTime()		{	return fTime;		}
-	inline TVector3 GetPosition()	{	return fPosition;	}		
+// G E T T E R S                     ^ "const" is added since not meant to change the content (also we can get information of constant object See TMielEvent class)
+	inline UShort_t GetSegment() 	const	{	return fSegment;	}	
+	inline Double_t GetEnergy()		const	{	return fEnergy;		}
+	inline Double_t GetTime()		const	{	return fTime;		}
+	inline TVector3 GetPosition()	const	{	return fPosition;	}		
 	
 
 	ClassDef(TMielHit,1)  // MielHit structure
