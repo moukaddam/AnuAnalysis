@@ -89,7 +89,6 @@ void ParseInputLine(int argc, char **argv);
 int main(int argc, char **argv) {
    
   if(argc < 2)	{
-    printf("     Order       >>     calibration      >>      root-files   \n");
     printf(" use : ./struct2class -c <calibration-file> -f <data-root-file> (XXX.root YYY.root .. etc...) \n");
     return 1;
   }
@@ -111,7 +110,7 @@ int main(int argc, char **argv) {
 		size_t pos = inputname.find(".root");
 		outputname.insert(pos, "_data");	
 		printf("Output file : %s\n", outputname.c_str());
-/*
+
 		// point to the input and output files
 		gInputFile = new TFile(inputname.c_str());
 		gOutputFile = new TFile(outputname.c_str(),"RECREATE");
@@ -133,18 +132,18 @@ int main(int argc, char **argv) {
 		cout << "Tree contains " << nentries <<endl;
 
 
-	for (int j=0 ; j < 1000; j++) {
-		//Get the entry and set the events in the new Tree
-		GoodEvent=false; 
-		GetEvent(j);	
+		for (int j=0 ; j < 1000; j++) {
+			//Get the entry and set the events in the new Tree
+			GoodEvent=false; 
+			GetEvent(j);	
 
-		for (int k = 0 ; k < 6 ; k++ ) {
-	  
-			if (gBuffer_energy.at(k) > 0) { // keep this good event
-				GoodEvent=true; 
-				gMielData->SetMiel(k, gBuffer_energy.at(k), CalibrateMielEnergy(k,gBuffer_energy.at(k)), gBuffer_time.at(k)) ;
+			for (int k = 0 ; k < 6 ; k++ ) {
+		  
+				if (gBuffer_energy.at(k) > 0) { // keep this good event
+					GoodEvent=true; 
+					gMielData->SetMiel(k, gBuffer_energy.at(k), CalibrateMielEnergy(k,gBuffer_energy.at(k)), gBuffer_time.at(k)) ;
+				}
 			}
-		}
 
 		//gammas
 		gMielData->SetAptherix(gBuffer_gamma);
@@ -154,15 +153,17 @@ int main(int argc, char **argv) {
 		gMielData->SetVContG(gBuffer_VContG);
 
 		if (GoodEvent){
+			cout << " G O O D   E V E N T " << endl;
+			gMielData->Print();
+						
 			gMiel->SetMielEvent(gMielData);
 			gMiel->BuildHits();
 
-			//gMielData->Print();
-			//gMiel->Print();
-
-			gNewTree->Fill();	// fill the tree	
+			gMiel->Print();
+			getchar() ;
 		}
-
+		
+		gNewTree->Fill();	// fill the tree	
 		gMielData->Clear();
 		gMiel->Clear();
 	}
@@ -172,7 +173,7 @@ gNewTree->AutoSave();
 
 gOutputFile->Write();
 gOutputFile->Close();  
-*/
+
 } //end of input files 
 
 	

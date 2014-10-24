@@ -13,7 +13,7 @@ class TMielEvent : public TObject {
 
 	private:
 	std::vector<TMielHit*>	fHits; //singles
-	UShort_t fPattern;	           //flag
+	int fPattern;	           //flag
 
 	public:
 // C O N S T R U C T O R / D E S T R U C T O R
@@ -25,13 +25,13 @@ class TMielEvent : public TObject {
 	void	Print(); 
 	bool    Contact(TMielHit* A, TMielHit* B); // test if A an B are neighbouring segments
 	TMielHit*    Add(std::vector<TMielHit*>);
-	
+	void   CalculatePattern() ;
 // S E T T E R S
 	void SetHits(std::vector<TMielHit*> vec) ;	
 	void PushHit(TMielHit*)	;
 
 // G E T T E R S
-	unsigned GetPattern() ; 	
+	int GetPattern() 							{	return fPattern	; } 	
 	inline TMielHit* GetHit(UShort_t i )		{	return fHits.at(i);	}
 	inline std::vector<TMielHit*> GetHits()		{	return fHits ;	} 	
 	

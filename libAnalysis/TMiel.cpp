@@ -46,8 +46,8 @@ void TMiel::Print() {
 	fMielEvent->Print();
 
 	cout << "\n-----------C L U S T E R--------------\n" ; 
-		for (unsigned i = 0 ; i < fSum.size() ; i++ ) {
-		fSum.at(i)->Print();
+		for (unsigned i = 0 ; i < fCluster.size() ; i++ ) {
+		fCluster.at(i)->Print();
 		}
 	cout << "\n-----------S U M -------------\n" ; 
 		for (unsigned i = 0 ; i < fSum.size() ; i++ ) {
@@ -68,17 +68,17 @@ void TMiel::BuildHits(){
 
 
 void TMiel::SetMielEvent(TMielData* data){ // Take the elecron data from TMielData and store in a the TMielEvent of this class for further procedure 
- 
-	TMielHit* aMielHit = new TMielHit(); 
-	unsigned mult = data->GetMultiplicity() ; 	
+
+	TMielHit* aMielHit ; 
+	unsigned mult = data->GetMultiplicity() ;
 	for (unsigned i = 0 ; i < mult ; i++ ) {
 		unsigned segment = data->GetSegment(i); 
 		double    energy = data->GetEnergy(i);
 		int       time   = (int) data->GetTime(i);
-		aMielHit->Set(segment, energy, time) ;
+		
+		aMielHit = new TMielHit(segment, energy, time); 
+		//aMielHit->Set(segment, energy, time) ;		
 		fMielEvent->PushHit(aMielHit);
-		//clear
-		aMielHit->Clear();
 	}
 }
 

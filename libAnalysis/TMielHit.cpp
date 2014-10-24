@@ -26,6 +26,11 @@ TMielHit::TMielHit() {
    Clear();
 }
 
+TMielHit::TMielHit(UShort_t Seg, Double_t Energy, UInt_t Time) {
+   Clear();
+   Set(Seg,  Energy, Time);
+}
+
 TMielHit::~TMielHit() {
 }
 
@@ -38,6 +43,11 @@ void TMielHit::Clear() {
 }
 
 
+void TMielHit::SetSegment(UShort_t Seg)	{
+fSegment=(Seg);	 
+CalculatePosition(); 
+} 
+	       
 void TMielHit::CalculatePosition()	{	
 fPosition.SetXYZ(1,1,distance_to_target) ;	
 fPosition.SetPhi( (fSegment + 0.5)*phi_pitch ) ; 

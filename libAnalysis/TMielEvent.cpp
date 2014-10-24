@@ -44,7 +44,9 @@ void TMielEvent::Clear() {
 
 void TMielEvent::Print() {
 	cout << "  - M I E L  E V E N T -  \n" ;
-	cout << "==========================\n" ; 
+	cout << "==========================\n" ;
+	cout << " Hit pattern : " << fPattern  << endl ; 
+	cout << "\n-------------------------\n" ; 
 	for (unsigned i = 0 ; i < fHits.size() ; i++ ) {
 		fHits.at(i)->Print();
 		}
@@ -54,15 +56,15 @@ void TMielEvent::Print() {
 
  void TMielEvent::SetHits( vector<TMielHit*> vec)	{	
  fHits = vec ; 
- GetPattern() ;
+ CalculatePattern() ;
  } 
  
  void TMielEvent::PushHit(TMielHit* hit) {
- fHits.push_back(hit);
- GetPattern() ; 
+	fHits.push_back(hit);  
+	CalculatePattern() ; 
  } 
 	
-unsigned TMielEvent::GetPattern() {
+void TMielEvent::CalculatePattern() {
 
 /*
 This functions return the pattern of the fired segments, 1 for hit, 0 for no-hit, it uses the vector sum to tag the different patterns
@@ -79,25 +81,29 @@ fold-{patterns}
 	6-{111111}
 */
 
-Double_t epsilon= 0.001 ; // small length to compare magnitudes, if magnitude < epsilon is practically zero
+Double_t epsilon= 1E-3 ; // small length to compare magnitudes, if magnitude < epsilon is practically zero
 
 //simple cases 
-	if (fHits.size()==1) return 100000;
-	if (fHits.size()==6) return 111111;
-	if (fHits.size()==5) return 111110;
+	if (fHits.size()==1) fPattern =100000;
+	if (fHits.size()==6) fPattern =111111;
+	if (fHits.size()==5) fPattern =111110;
 
 //other cases 	 
 	if (fHits.size()==2){
-	TVector3 A = fHits.at(0)->GetPosition() ; 
+	TVector3 A = fHits.at(0)->GetPosition() ;
 	TVector3 B = fHits.at(1)->GetPosition() ;
 	// reduce to polar coordinates only
 	 A.SetXYZ(A.X(),A.Y(),0) ; 
 	 B.SetXYZ(B.X(),B.Y(),0) ;
-	 TVector3 Sum = A + B ; 
+	 TVector3 Sum = A + B ;
+	 A.Unit();
+	 B.Unit();
+
 	 
-	 if (Sum.Mag() > A.Mag() ) return 110000 ;
-	 else if (Sum.Mag() < epsilon ) return 100100 ;
-	 	  else return 101000;
+	 cout << A.Mag() << " " << B.Mag() << " " << Sum.Mag() << endl ; 
+	 if (Sum.Mag() > 1.5*A.Mag() ) fPattern =110000 ;
+	 else if (Sum.Mag() < epsilon ) fPattern =100100 ;
+	 	  else fPattern =101000;
 
 	}
 
@@ -111,9 +117,18 @@ Double_t epsilon= 0.001 ; // small length to compare magnitudes, if magnitude < 
 	 C.SetXYZ(C.X(),C.Y(),0) ;
 	 TVector3 Sum = A + B + C ; 
 	 
-	 if (Sum.Mag() > A.Mag() ) return 111000 ;
-	 else if (Sum.Mag() < epsilon ) return 101010 ;
-	 	  else return 110100;
+	 A.Unit();
+	 B.Unit();
+	 C.Unit();
+	 
+	 A.Dump();
+	 B.Dump();
+	 C.Dump();
+	 Sum.Dump();
+	 
+	 if (Sum.Mag() > 1.5*A.Mag() ) fPattern =111000 ;
+	 else if (Sum.Mag() < epsilon ) fPattern =101010 ;
+	 	  else fPattern =110100;
 	}
 
 
@@ -130,49 +145,48 @@ Double_t epsilon= 0.001 ; // small length to compare magnitudes, if magnitude < 
 
 	 TVector3 Sum = A + B + C + D;
 	 
-	 if (Sum.Mag() > A.Mag() ) return 111100 ;
-	 else if (Sum.Mag() < epsilon ) return 1101100 ;
-	 	  else return 111010;
+	 if (Sum.Mag() > 1.5*A.Mag() ) fPattern =111100 ;
+	 else if (Sum.Mag() < epsilon ) fPattern =1101100 ;
+	 	  else fPattern =111010;
 	}
 
-	// by default
-	return 000000; 
+
 }
 
 TMielHit*  TMielEvent::Add( vector<TMielHit*> hits) { // Add a vector of hits 
 
-TMielHit* aMielHit = new TMielHit(); 
+	TMielHit* aMielHit = new TMielHit(); 
 
-//calculate full energy 
-double   full = 0  ;
-unsigned index = 0  ; // tag maximum energy
-for (unsigned i = 0 ; i < hits.size() ; i++ ) {
-	full = full + hits.at(i)->GetEnergy();
-	if (hits.at(index)->GetEnergy() < hits.at(i)->GetEnergy() ) index=i ;
-	}
-aMielHit->SetEnergy(full) ; 
+	//calculate full energy 
+	double   full = 0  ;
+	unsigned index = 0  ; // tag maximum energy
+	for (unsigned i = 0 ; i < hits.size() ; i++ ) {
+		full = full + hits.at(i)->GetEnergy();
+		if (hits.at(index)->GetEnergy() < hits.at(i)->GetEnergy() ) index=i ;
+		}
+	aMielHit->SetEnergy(full) ; 
 	
 	
-//calculate segment 
-unsigned short segment = 0 ; 
-for (unsigned i = 0 ; i < hits.size() ; i++ ) {
-	segment = segment + hits.at(i)->GetSegment();  // e.g if segment 1+2 => Segment = 12
-	}
-aMielHit->SetSegment(segment) ; 
+	//calculate segment 
+	unsigned short segment = 0 ; 
+	for (unsigned i = 0 ; i < hits.size() ; i++ ) {
+		segment = segment*10 + hits.at(i)->GetSegment();  // e.g if segment 1+2 => Segment = 12
+		}
+	aMielHit->SetSegment(segment) ; 
 	
 	
-//calculate time 
-aMielHit->SetTime(hits.at(index)->GetTime());
+	//calculate time 
+	aMielHit->SetTime(hits.at(index)->GetTime());
 
 
-//calculate position
-TVector3 position = hits.at(0)->GetPosition(); // copy one position (to keep cylindrical Z and R)
-double phi=0 ;  
-for (unsigned i = 0 ; i < hits.size() ; i++ ) {
-	phi = phi + ( hits.at(i)->GetPosition().Phi() * (hits.at(i)->GetEnergy()/full) );  // weighted position
-	}
-position.SetPhi(phi);  
-aMielHit->SetPosition(position);
+	//calculate position
+	TVector3 position = hits.at(0)->GetPosition(); // copy one position (to keep cylindrical Z and R)
+	double phi=0 ;  
+	for (unsigned i = 0 ; i < hits.size() ; i++ ) {
+		phi = phi + ( hits.at(i)->GetPosition().Phi() * (hits.at(i)->GetEnergy()/full) );  // weighted position
+		}
+	position.SetPhi(phi);  
+	aMielHit->SetPosition(position);
 	
 	return aMielHit ; 
 }
@@ -309,7 +323,7 @@ bool TMielEvent::Contact(TMielHit* SegmentA, TMielHit* SegmentB){
 	 B.SetXYZ(B.X(),B.Y(),0) ;
 	 TVector3 Sum = A + B ; 
 	 
-	 if (Sum.Mag() > A.Mag() ) return true ;
+	 if (Sum.Mag() > 1.5*A.Mag() ) return true ;
 	 else 
 	 return false;
 	

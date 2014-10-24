@@ -24,6 +24,7 @@ class TMielHit : public TObject {
 	public:
 // C O N S T R U C T O R / D E S T R U C T O R
 	TMielHit();
+	TMielHit(UShort_t Seg, Double_t Energy, UInt_t Time);
 	~TMielHit();
 
 // F U N C T I O N  M E M B E R S
@@ -32,7 +33,7 @@ class TMielHit : public TObject {
 	TMielHit* Copy(TMielHit* hit) ; 
 	
 // S E T T E R S
-	inline void SetSegment(UShort_t Seg)	{	fSegment=(Seg);	 CalculatePosition(); } 
+	       void SetSegment(UShort_t Seg) ; 	
 	inline void SetEnergy(Double_t Energy)	{	fEnergy=(Energy);	}		
 	inline void SetTime(Int_t Time)			{	fTime=(Time);		}		
 	inline void SetPosition(TVector3 pos)	{	fPosition=(pos);	}	
@@ -42,7 +43,7 @@ class TMielHit : public TObject {
 				SetSegment(Seg); 
 				SetEnergy(Energy);	
 				SetTime(Time);		
-	}
+				}
 		
 	public:
 // G E T T E R S
