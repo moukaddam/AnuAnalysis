@@ -39,6 +39,7 @@ void TMielData::Clear() {
 	fMielEnergy.clear();
 	fMielTime.clear(); 
 
+  fMielChopper=-1;
 	fMielAptherix=-1; 
 	fMielHallProbe=-1; 
 	fMielVcontE=-1; 
