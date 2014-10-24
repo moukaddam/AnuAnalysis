@@ -77,13 +77,29 @@ TDAQConfig *PrepareConfig(void){
    CurBranch->GetADCs()->Add(new TDAQADC(1, 2, "VcontE",    "VcontE", 2048));
    CurBranch->GetADCs()->Add(new TDAQADC(1, 3, "VcontG",    "VcontG", 2048));
 
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 0, "MielT1T2", "MielT1-T2", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 1, "MielT1T3", "MielT1-T3", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 2, "MielT1T4", "MielT1-T4", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 3, "MielT1T5", "MielT1-T5", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 4, "MielT1T6", "MielT1-T6", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 5, "MielT2T3", "MielT2-T3", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 6, "MielT2T4", "MielT2-T4", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 7, "MielT2T5", "MielT2-T5", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 8, "MielT2T6", "MielT2-T6", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 9, "MielT3T4", "MielT3-T4", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 10, "MielT3T5", "MielT3-T5", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 11, "MielT3T6", "MielT3-T6", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 12, "MielT4T5", "MielT4-T5", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 13, "MielT4T6", "MielT4-T6", 8192));
+  CurBranch->GetADCs()->Add(new TDAQADC(11, 14, "MielT5T6", "MielT5-T6", 8192));
+  /*
    CurBranch->GetADCs()->Add(new TDAQADC(5, 0, "Miel1T", "Miel1T", 4096));
    CurBranch->GetADCs()->Add(new TDAQADC(5, 1, "Miel2T", "Miel2T", 4096));
    CurBranch->GetADCs()->Add(new TDAQADC(5, 2, "Miel3T", "Miel3T", 4096));
    CurBranch->GetADCs()->Add(new TDAQADC(5, 3, "Miel4T", "Miel4T", 4096));
    CurBranch->GetADCs()->Add(new TDAQADC(5, 4, "Miel5T", "Miel5T", 4096));
    CurBranch->GetADCs()->Add(new TDAQADC(5, 5, "Miel6T", "Miel6T", 4096));
-
+  */
   // This now adds the branch to the DAQConfig object.
   RetVal->GetBranches()->Add(CurBranch);
 

@@ -19,14 +19,17 @@
 using namespace std;
 
 //Root 
+#include <TObjArray.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
+#include <TLeaf.h>
+#include <TH1F.h>
+#include <TF1.h>
+#include <TString.h>
 
 //User 
 #include "./libAnalysis/TMielData.h"
-#include "./libAnalysis/TMiel.h"
-
 
 // #########################################################################################
 //                               global variables 
@@ -46,11 +49,14 @@ using namespace std;
 struct Miel_st {
  UShort_t Miel1E;  UShort_t Miel2E; UShort_t Miel3E; UShort_t Miel4E; UShort_t Miel5E; UShort_t Miel6E;  
  UShort_t Aptherix; UShort_t HallProbe; UShort_t VcontE; UShort_t VcontG;
- UShort_t Miel1T;  UShort_t Miel2T; UShort_t Miel3T; UShort_t Miel4T; UShort_t Miel5T; UShort_t Miel6T; 
+ UShort_t MielT1T2; UShort_t MielT1T3; UShort_t MielT1T4; UShort_t MielT1T5; UShort_t MielT1T6; 
+                    UShort_t MielT2T3; UShort_t MielT2T4; UShort_t MielT2T5; UShort_t MielT2T6;
+                                       UShort_t MielT3T4; UShort_t MielT3T5; UShort_t MielT3T6;
+                                                          UShort_t MielT4T5; UShort_t MielT4T6;
+                                                                             UShort_t MielT5T6;
  } gMiel_st; // old tree , struct based
 
 TMielData* gMielData; // new tree, data vector based branch, data organised, energy calibrated
-TMiel* gMiel; 		  // new tree, analysis branch, hitpattern, add-back
 TTree *gNewTree ;
 TTree *gOldTree ;
 TFile *gInputFile; 
@@ -70,6 +76,8 @@ UShort_t gBuffer_VContE ;
 UShort_t gBuffer_VContG ; 	
 
 vector < vector<double> > gCalibration;
+vector <double> gTimeCalibration;
+vector < vector<int> > gTimeCombinations;
 bool gCalibrationRead;
 
 //Declare functions
@@ -77,9 +85,12 @@ void GetEvent(int i);
 void ResetBuffers(); 
 void ReadMielCalibration(string filename);
 float CalibrateMielEnergy(int segment, int E_charge); 
-float CalibrateTime(int segment, int T_charge); 
+float CalibrateTime(int segment, int time); 
+void GainMatchTimeDiff(string filename);
+void PopulateCombinations();
+void PopulateTimeCoefficients(string filename);
 void PrintBuffers();
-void PrintMiel();
+void PrintBasicMiel();
 void ParseInputLine(int argc, char **argv);
 
 // #########################################################################################
@@ -100,50 +111,75 @@ int main(int argc, char **argv) {
    // Analyse root files  
   bool GoodEvent=false; 
   gCalibrationRead=false;
-  gMielData = new TMielData(); 	// organise data
-  gMiel 	= new TMiel(); 		// analyse data
+
+  gMielData = new TMielData();
+
+  // Iterate through the arguments
+  for(int i=1;i<argc;i++)	{
+    if (i+1 != argc) {
+      if (strcmp(argv[i], "-c") == 0) {
+        printf(" Reading in calibration file %s\n", argv[i+1] );
+        ReadMielCalibration(argv[i+1]);
+        gCalibrationRead=true;
+      } else if (strcmp(argv[i], "-f") == 0) {
+        for (int z=i+1; z<argc; z++) {
+          
+	    printf(" Reading file %s\t--\t", argv[z]);
+	    string inputname = argv[z];
+      string outputname = inputname;	
+      size_t pos = inputname.find(".root");
+	    outputname.insert(pos, "_data");	
+	    printf("Output file %s\n", outputname.c_str());
+	
+	// point to the input and output files
+	gInputFile = new TFile(inputname.c_str());
+	gOutputFile = new TFile(outputname.c_str(),"RECREATE");
+
+	//get the trees inside
+	gInputFile->ls();
+	
+	gOldTree = (TTree*)gInputFile->Get("MielTree");
+	//gOldTree->SetMakeClass(1); 
+	gOldTree->SetBranchAddress("Miel",&gMiel_st);
+
+  string timeCalFile = argv[z];
+  timeCalFile.replace(pos, 5, "_TIME.cal");
+  ifstream fTimeFile(timeCalFile);
+  if (fTimeFile.good()) {
+    fTimeFile.close();
+    cout << "Time calibration file found, populating coefficients" << endl;
+    PopulateTimeCoefficients(timeCalFile);
+  } else {
+    fTimeFile.close();
+    cout << "Time calibration file not found, recreating" << endl;
+    GainMatchTimeDiff(timeCalFile);
+  }
   
-	for( unsigned z = 0 ; z<gRootFilesList.size(); z++)	{
-					  
-		printf(" Reading file : %s\t--\t", gRootFilesList.at(z));
-		string inputname = gRootFilesList.at(z);
-		string outputname = inputname;	
-		size_t pos = inputname.find(".root");
-		outputname.insert(pos, "_data");	
-		printf("Output file : %s\n", outputname.c_str());
-/*
-		// point to the input and output files
-		gInputFile = new TFile(inputname.c_str());
-		gOutputFile = new TFile(outputname.c_str(),"RECREATE");
+  PopulateCombinations();
 
-		//get the trees inside
-		gInputFile->ls();
+	//point to the new tree and set the addresses
+	gNewTree = new TTree("MielDataTree","MielDataTree");
+	gNewTree->Branch("TMielData",&gMielData);
 
-		gOldTree = (TTree*)gInputFile->Get("MielTree");
-		//gOldTree->SetMakeClass(1); 
-		gOldTree->SetBranchAddress("Miel",&gMiel_st);
-
-		//point to the new tree and set the addresses
-		gNewTree = new TTree("MielDataTree","MielDataTree");
-		gNewTree->Branch("TMielData",&gMielData);
-		gNewTree->Branch("TMiel",&gMiel);
-
-		//Iterate through events
-		Int_t nentries = (Int_t)gOldTree->GetEntries();
-		cout << "Tree contains " << nentries <<endl;
-
-
-	for (int j=0 ; j < 1000; j++) {
+	//Iterate through events
+	Int_t nentries = (Int_t)gOldTree->GetEntries();
+	cout << "Tree contains " << nentries <<endl;
+	
+	
+	for (int j=0 ; j < nentries; j++) {
+		
 		//Get the entry and set the events in the new Tree
-		GoodEvent=false; 
+		GoodEvent=true; // keep all events 
 		GetEvent(j);	
 
 		for (int k = 0 ; k < 6 ; k++ ) {
-	  
 			if (gBuffer_energy.at(k) > 0) { // keep this good event
 				GoodEvent=true; 
-				gMielData->SetMiel(k, gBuffer_energy.at(k), CalibrateMielEnergy(k,gBuffer_energy.at(k)), gBuffer_time.at(k)) ;
-			}
+				vector<UInt_t> sTimeVector;
+				for (Int_t i=0; i<5; i++)
+					sTimeVector.push_back( gTimeCalibration.at(gTimeCombinations.at(k).at(i)) * gBuffer_time.at(gTimeCombinations.at(k).at(i)) );
+				gMielData->SetMiel(k, gBuffer_energy.at(k), CalibrateMielEnergy(k,gBuffer_energy.at(k)), sTimeVector) ;
+				}
 		}
 
 		//gammas
@@ -154,17 +190,11 @@ int main(int argc, char **argv) {
 		gMielData->SetVContG(gBuffer_VContG);
 
 		if (GoodEvent){
-			gMiel->SetMielEvent(gMielData);
-			gMiel->BuildHits();
-
 			//gMielData->Print();
-			//gMiel->Print();
-
-			gNewTree->Fill();	// fill the tree	
+			gNewTree->Fill();	// fill the tree
 		}
-
+	
 		gMielData->Clear();
-		gMiel->Clear();
 	}
 
 // Write the new trees in seperate files 
@@ -172,7 +202,6 @@ gNewTree->AutoSave();
 
 gOutputFile->Write();
 gOutputFile->Close();  
-*/
 } //end of input files 
 
 	
@@ -184,7 +213,51 @@ return 0 ;
 //                                functions start here 
 // #########################################################################################
 
-void PrintMiel(){
+void PopulateCombinations() {
+
+  int sOne[] = {0,1,2,3,4};
+  vector<int> sTemp;
+  sTemp.assign(sOne,sOne+5);  
+  gTimeCombinations.push_back(sTemp);
+
+  int sTwo[] = {0, 5, 6, 7, 8};
+  sTemp.assign(sTwo,sTwo+5);
+  gTimeCombinations.push_back(sTemp);
+
+  int sThree[] = {1, 5, 9, 10, 11};
+  sTemp.assign(sThree,sThree+5);
+  gTimeCombinations.push_back(sTemp);
+  
+  int sFour[] = {2, 6, 9, 12, 13};
+  sTemp.assign(sFour,sFour+5);
+  gTimeCombinations.push_back(sTemp);
+
+  int sFive[] = {3, 7, 10, 12, 14};
+  sTemp.assign(sFive,sFive+5);
+  gTimeCombinations.push_back(sTemp);
+
+  int sSix[] = {4, 8, 11, 13, 14};
+  sTemp.assign(sSix, sSix+5);
+  gTimeCombinations.push_back(sTemp);
+
+}
+
+void PopulateTimeCoefficients(string inFile) {
+
+  double channel, coeff;
+
+  ifstream input(inFile);
+  while (true) {
+    input >> channel >> coeff;
+    if (input.eof()) break;
+    gTimeCalibration.push_back( coeff );
+  }
+
+  input.close();
+
+}
+
+void PrintBasicMiel(){
 
 	cout << "E1" << " \t" << "E2" << " \t" << "E3" << " \t" << "E4" << " \t" << "E5" << " \t" << "E6" << " \n";
 	cout << gMiel_st.Miel1E << " \t";
@@ -193,7 +266,7 @@ void PrintMiel(){
 	cout << gMiel_st.Miel4E << " \t";
 	cout << gMiel_st.Miel5E << " \t";
 	cout << gMiel_st.Miel6E << " \n";
-	
+	/* TODO
 	cout << "T1" << " \t" << "T2" << " \t" << "T3" << " \t" << "T4" << " \t" << "T5" << " \t" << "T6" << " \n" ;
 	cout << gMiel_st.Miel1T << " \t";
 	cout << gMiel_st.Miel2T << " \t";
@@ -201,7 +274,7 @@ void PrintMiel(){
 	cout << gMiel_st.Miel4T << " \t";
 	cout << gMiel_st.Miel5T << " \t";
 	cout << gMiel_st.Miel6T << " \n";
-	
+	*/
 	cout << "gamma" << " \t" << "hall" << " \t" << "VcontE" << " \t" << "VcontG" << " \n" ;
 	cout << gMiel_st.Aptherix << " \t";
 	cout << gMiel_st.HallProbe << " \t";
@@ -248,7 +321,7 @@ void ResetBuffers(){
 	gBuffer_VContG =  -1;
 	
 	gBuffer_energy.resize(6,-1); 
-	gBuffer_time.resize(6,-1);
+	gBuffer_time.resize(15,-1);
 	
 } 
 
@@ -269,18 +342,27 @@ void GetEvent(int i){
 		gBuffer_energy.at(5) =   gMiel_st.Miel6E; 
 	}
 	else{cout << "wrong size" ; exit(-1);}
-	
+
 		//Miel times
 	if(gBuffer_energy.size()==6) { 
-	gBuffer_time.at(0) =   gMiel_st.Miel1T; 
-	gBuffer_time.at(1) =   gMiel_st.Miel2T; 
-	gBuffer_time.at(2) =   gMiel_st.Miel3T; 
-	gBuffer_time.at(3) =   gMiel_st.Miel4T; 
-	gBuffer_time.at(4) =   gMiel_st.Miel5T; 
-	gBuffer_time.at(5) =   gMiel_st.Miel6T;
+	  gBuffer_time.at(0) =   gMiel_st.MielT1T2; 
+	  gBuffer_time.at(1) =   gMiel_st.MielT1T3; 
+	  gBuffer_time.at(2) =   gMiel_st.MielT1T4; 
+	  gBuffer_time.at(3) =   gMiel_st.MielT1T5; 
+	  gBuffer_time.at(4) =   gMiel_st.MielT1T6; 
+	  gBuffer_time.at(5) =   gMiel_st.MielT2T3;
+    gBuffer_time.at(6) =   gMiel_st.MielT2T4;
+    gBuffer_time.at(7) =   gMiel_st.MielT2T5;
+    gBuffer_time.at(8) =   gMiel_st.MielT2T6;
+    gBuffer_time.at(9) =   gMiel_st.MielT3T4;
+    gBuffer_time.at(10) =   gMiel_st.MielT3T5;
+    gBuffer_time.at(11) =   gMiel_st.MielT3T6;
+    gBuffer_time.at(12) =   gMiel_st.MielT4T5;
+    gBuffer_time.at(13) =   gMiel_st.MielT4T6;
+    gBuffer_time.at(14) =   gMiel_st.MielT5T6;
 	}
 	else{cout << "wrong size" ; exit(-1);}
-	
+
 		// gamma energies
 	gBuffer_gamma =   gMiel_st.Aptherix;
 		//Hall probe 
@@ -290,6 +372,64 @@ void GetEvent(int i){
 	gBuffer_VContG =   gMiel_st.VcontG;	
 
 } 
+
+void GainMatchTimeDiff(string fFile) {
+  
+  Double_t fMatch = 0;
+  gTimeCalibration.push_back(1.);
+
+  ofstream outFile(fFile);
+  int sCount = 0;
+
+  for (int iT1=1; iT1<=6; iT1++) {
+    for (int iT2=(iT1+1); iT2<=6; iT2++) {
+      
+      TString sName = Form("Miel.MielT%dT%d>>sHist", iT1, iT2);
+      TString sCut = Form("Miel.MielT%dT%d>0", iT1, iT2);
+
+      // for T1T2 get the centroid
+      TH1F *sHist = new TH1F("sHist", "sHist", 8192, 0, 8192);
+      gOldTree->Draw( sName , sCut, "");
+
+      // .. find the max
+      Double_t sCentroidEstimate = 0;
+      Double_t sMax = 0;
+      for (int i=60; i<8192; i++) {
+        Double_t sBinContent = sHist->GetBinContent(i);
+        if ( sBinContent > sMax ) {
+          sMax = sBinContent;
+          sCentroidEstimate = i;
+        }
+      }
+    
+      // .. rebin
+      sHist->Rebin(4);
+      // .. get centroid
+      TF1 *sGaus = new TF1("sGaus", "gaus", sCentroidEstimate-2000, sCentroidEstimate+2000);
+      sHist->Fit(sGaus, "MRQ");
+      Double_t sCentroid = sGaus->GetParameter(1);
+
+      Double_t sCal = 1.;
+      if (iT1==1 && iT2==2) fMatch = sCentroid;
+      else {
+        if (sCentroid > 0 ) sCal = fMatch / sCentroid;
+        else sCal = 1.;
+        gTimeCalibration.push_back( sCal );
+      }
+
+      cout << "\t\tTIME:\t" << sName << " calibrated" << endl;
+      outFile << sCount << "\t" << sCal << endl;
+      sCount++;
+
+      sGaus->Delete();
+      sHist->Delete();
+
+    }
+  }  
+
+  outFile.close();
+  
+}
 
 void ReadMielCalibration(string fFilename) {
 
