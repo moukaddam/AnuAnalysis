@@ -76,6 +76,7 @@ TDAQConfig *PrepareConfig(void){
    CurBranch->GetADCs()->Add(new TDAQADC(1, 1, "HallProbe", "HallProbe", 2048));
    CurBranch->GetADCs()->Add(new TDAQADC(1, 2, "VcontE",    "VcontE", 2048));
    CurBranch->GetADCs()->Add(new TDAQADC(1, 3, "VcontG",    "VcontG", 2048));
+   CurBranch->GetADCs()->Add(new TDAQADC(1, 4, "Chopper",    "Chopper", 8192));
 
   CurBranch->GetADCs()->Add(new TDAQADC(11, 0, "MielT1T2", "MielT1-T2", 8192));
   CurBranch->GetADCs()->Add(new TDAQADC(11, 1, "MielT1T3", "MielT1-T3", 8192));
