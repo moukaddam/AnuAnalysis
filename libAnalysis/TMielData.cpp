@@ -39,7 +39,7 @@ void TMielData::Clear() {
 	fMielEnergy.clear();
 	fMielTime.clear(); 
 
-  fMielChopper=-1;
+  	fMielChopper=-1;
 	fMielAptherix=-1; 
 	fMielHallProbe=-1; 
 	fMielVcontE=-1; 
@@ -51,37 +51,40 @@ void TMielData::Clear() {
 
 void TMielData::Print() {
 
-	cout << " P R I N T  -- E V E N T  \n" ;
+	cout << "    M I E L -- D A T A   \n" ;
 	cout << "==========================\n" ; 
 
-	cout << "Miel Segment : " << fMielSegment.size() <<"\n" ;
+	cout << "Miel Segment size : " << fMielSegment.size() <<"\n" ;
 	for (unsigned i = 0 ; i < fMielSegment.size() ; i++ ) {
 	cout << " "<< fMielSegment.at(i)<<"\t";
 	}
 	cout << "\n-------------------------\n" ; 
 	
-	cout << "Miel Charge : " << fMielCharge.size() <<"\n" ;
+	cout << "Miel Charge size : " << fMielCharge.size() <<"\n" ;
 	for (unsigned i = 0 ; i < fMielCharge.size() ; i++ ) {
 	cout << " "<< fMielCharge.at(i)<<"\t";
 	}
 	cout << "\n-------------------------\n" ; 
 
-	cout << "Miel Energy : " << fMielEnergy.size() <<"\n" ;
+	cout << "Miel Energy size : " << fMielEnergy.size() <<"\n" ;
 	for (unsigned i = 0 ; i < fMielEnergy.size() ; i++ ) {
 	cout << " "<< fMielEnergy.at(i)<<"\t";
 	}
 	cout << "\n-------------------------\n" ; 
 
-	cout << "Miel Time : " << fMielTime.size() <<"\n" ;
+	cout << "Miel Time size   : " << fMielTime.size() <<"\n" ;
 	for (unsigned i = 0 ; i < fMielTime.size() ; i++ ) {
 	cout << " "<< fMielTime.at(i)<<"\t";
 	}
 	cout << "\n-------------------------\n" ; 
 
-	cout << "Miel Aptherix : " << fMielAptherix <<"\n" ;
+
+	cout << "Miel Gamma : " << fMielAptherix <<"\n" ;
 	cout << "Miel HallProbe : " << fMielHallProbe <<"\n" ;
 	cout << "Miel VcontE : " << fMielVcontE <<"\n" ;
-	cout << "Miel VcontG : " << fMielVcontG <<"\t" ;
+	cout << "Miel VcontG : " << fMielVcontG <<"\n" ;
+	cout << "Miel Chopper : " << fMielChopper <<"\n" ;
+	
 	cout << "\n-------------------------\n" ; 
 
 }

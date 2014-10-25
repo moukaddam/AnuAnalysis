@@ -11,6 +11,7 @@ const double phi_pitch = (360.0/nb_segment)*TMath::DegToRad() ;
 const double mid_radius = 1.0 ;  // need correct value
 const double distance_to_target = 15.0 ; // need correct value
 
+
 class TMielHit : public TObject {
 
 	private:
@@ -24,6 +25,7 @@ class TMielHit : public TObject {
 	public:
 // C O N S T R U C T O R / D E S T R U C T O R
 	TMielHit();
+	TMielHit(UShort_t Seg, Double_t Energy, UInt_t Time);
 	~TMielHit();
 
 // F U N C T I O N  M E M B E R S
@@ -32,7 +34,7 @@ class TMielHit : public TObject {
 	TMielHit* Copy(TMielHit* hit) ; 
 	
 // S E T T E R S
-	inline void SetSegment(UShort_t Seg)	{	fSegment=(Seg);	 CalculatePosition(); } 
+	       void SetSegment(UShort_t Seg) ; 	
 	inline void SetEnergy(Double_t Energy)	{	fEnergy=(Energy);	}		
 	inline void SetTime(Int_t Time)			{	fTime=(Time);		}		
 	inline void SetPosition(TVector3 pos)	{	fPosition=(pos);	}	
@@ -42,14 +44,14 @@ class TMielHit : public TObject {
 				SetSegment(Seg); 
 				SetEnergy(Energy);	
 				SetTime(Time);		
-	}
+				}
 		
 	public:
-// G E T T E R S
-	inline UShort_t GetSegment()	{	return fSegment;	}	
-	inline Double_t GetEnergy()		{	return fEnergy;		}
-	inline Double_t GetTime()		{	return fTime;		}
-	inline TVector3 GetPosition()	{	return fPosition;	}		
+// G E T T E R S                     ^ "const" is added since not meant to change the content (also we can get information of constant object See TMielEvent class)
+	inline UShort_t GetSegment() 	const	{	return fSegment;	}	
+	inline Double_t GetEnergy()		const	{	return fEnergy;		}
+	inline Double_t GetTime()		const	{	return fTime;		}
+	inline TVector3 GetPosition()	const	{	return fPosition;	}		
 	
 
 	ClassDef(TMielHit,1)  // MielHit structure

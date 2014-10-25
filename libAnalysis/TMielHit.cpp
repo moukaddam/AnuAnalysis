@@ -1,14 +1,15 @@
 /*****************************************************************************
  * Author: Mhd Moukaddam  contact address: moukaddam@triumf.ca      		 *
  *---------------------------------------------------------------------------*
- * Decription: This class stores the segment energy and time.
-               It is the first step of the analysis procedure, th ebuilding stone 
+ * Decription: This class stores a hit : segment, energy and time.
+               It is the first step of the analysis procedure, the building stone 
                of any add back scheme 
  *---------------------------------------------------------------------------*
  * Comment:                                                                  *
  *                                                                           *
  *                                                                           *
  *****************************************************************************/
+
 
 //c++
 #include <iostream>
@@ -26,6 +27,11 @@ TMielHit::TMielHit() {
    Clear();
 }
 
+TMielHit::TMielHit(UShort_t Seg, Double_t Energy, UInt_t Time) {
+   Clear();
+   Set(Seg,  Energy, Time);
+}
+
 TMielHit::~TMielHit() {
 }
 
@@ -38,6 +44,11 @@ void TMielHit::Clear() {
 }
 
 
+void TMielHit::SetSegment(UShort_t Seg)	{
+fSegment=(Seg);	 
+CalculatePosition(); 
+} 
+	       
 void TMielHit::CalculatePosition()	{	
 fPosition.SetXYZ(1,1,distance_to_target) ;	
 fPosition.SetPhi( (fSegment + 0.5)*phi_pitch ) ; 
@@ -51,7 +62,8 @@ void TMielHit::Print() {
 	cout << " Segment : " << fSegment <<"\n" ;
 	cout << " Energy : " << fEnergy <<"\n" ;
 	cout << " Time : " << fTime <<"\n" ;
-	cout << " Position : \n" <<"X\tY\tZ\n"<< fPosition.X()<<"\t"<< fPosition.Y() <<"\t"<< fPosition.Z() << endl ;
+	cout << " Position : " <<"X\tY\tZ\n" ;
+	cout << "            "<<fPosition.X()<<"\t"<< fPosition.Y() <<"\t"<< fPosition.Z() << endl ;
 	cout << "\n-------------------------\n" ; 
 
 }
