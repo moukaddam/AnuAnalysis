@@ -37,7 +37,7 @@ TDAQADC::TDAQADC(void)
   FNumChannels = 0;
 }
 
-TDAQADC::TDAQADC(const TDAQADC &src)
+TDAQADC::TDAQADC(const TDAQADC &src):TObject(src)
 {
   FInterface = src.FInterface;
   FADCNumber = src.FADCNumber;
@@ -144,7 +144,7 @@ TDAQBranch::TDAQBranch(const char *BranchName, const char *BranchDesc)
   FBranchDesc = strdup_safe(BranchDesc);
 }
 
-TDAQBranch::TDAQBranch(const TDAQBranch &src)
+TDAQBranch::TDAQBranch(const TDAQBranch &src):TObject(src)
 {
   FADCs.SetOwner();
   FBranchName = strdup_safe(src.FBranchName);
@@ -259,7 +259,7 @@ TDAQConfig::TDAQConfig(void)
   FBranches.SetOwner();
 }
 
-TDAQConfig::TDAQConfig(const TDAQConfig &src)
+TDAQConfig::TDAQConfig(const TDAQConfig &src):TObject(src)
 {
   FBranches.SetOwner();
   
