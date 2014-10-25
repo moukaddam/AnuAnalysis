@@ -106,7 +106,7 @@ void TDAQADC::SetInterface(int Interface)
 
 void TDAQADC::SetADCNumber(int ADCNumber)
 {
-  FADCNumber = FADCNumber;
+  FADCNumber = ADCNumber;
 }
 
 void TDAQADC::SetFieldName(const char *FieldName)
@@ -241,8 +241,9 @@ TBranch *TDAQBranch::InitTree(TTree *Tree)
   printf("Tree->Branch(\"%s\", NULL, \"%s\");\n", GetBranchName(), LeafList);
 #endif
   
-  TBranch *RetVal = Tree->Branch(GetBranchName(), NULL, LeafList);
-  
+  TBranch *RetVal = Tree->Branch(GetBranchName(), 0, (const char *)LeafList); // MHD : 25 October 2014
+  //  Changes : Added 32000, casting of leaflist, Replace branch address "NULL" by zero
+
   // Done!
   delete[] LeafList;
   delete ADCIter;
