@@ -11,6 +11,7 @@ const double phi_pitch = (360.0/nb_segment)*TMath::DegToRad() ;
 const double mid_radius = 1.0 ;  // need correct value
 const double distance_to_target = 15.0 ; // need correct value
 
+
 class TMielHit : public TObject {
 
 	private:
