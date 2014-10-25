@@ -1,4 +1,6 @@
 // edited to include monitor - 29/09/09
+// edited the argument passing to the function LoadDCPFile(), to handle a run-time error. [Mhd: moukaddam@triumf.ca : 25/10/14]
+// edited add a DEBUG variable. [Mhd: moukaddam@triumf.ca : 25/10/14]
 // #########################################################################################3
 // Compillation in /home/tibor/12C/DcptoROOT folder
 //   (a) edit libDAQ.cxx if needed
@@ -7,18 +9,19 @@
 //   (d) .x dcp2root.cxx
 //   (e) provide filename when prompted
 
-#include <iostream.h>
+#include <iostream> // MHD : 25 October 2014, remove ".h" 
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+
+#define DEBUG 0
 
 void dcp2root(){
   //  PrepareConfig();
   //  PrepareTree();
 
   // Set name for used input and output files
-  
   cout <<"========================================"<<endl;
   cout <<"DCP to ROOT file conversion             "<<endl;
   cout <<"========================================"<<endl;
@@ -31,14 +34,16 @@ void dcp2root(){
   outfileName.append(".root");
 
   TFile *file = new TFile(outfileName.c_str(),"recreate");
-
-  LoadDCPFile(infileName.c_str());
+  LoadDCPFile(infileName);
   file->Write();
+
+if (DEBUG) cout << " End of dcp2root " << endl;
 } 
 
 // Creates the TDAQConfig object which specifies how the raw DAQ
 // channels should be loaded into the tree.
 TDAQConfig *PrepareConfig(void){
+
   // Create the object.
   TDAQConfig *RetVal = new TDAQConfig();
 
@@ -131,6 +136,7 @@ TDAQConfig *PrepareConfig(void){
 //   CurBranch->GetADCs()->Add(new TDAQADC(0, 15, "Mon2", "Monitor 2", 1024));
 //   RetVal->GetBranches()->Add(CurBranch);
 
+if (DEBUG) cout << " End of PrepareConfig " << endl;
   // Everything is added to the config, so we're all done.
   return RetVal;
 }
@@ -150,14 +156,16 @@ TTree *PrepareTree(void)
   // memory.
   delete DAQConfig;
   // And we're all done.
+  if (DEBUG) cout << " End of Preparetree " << endl;
   return MielTree;
 }
 
 // Creates a new TTree object and loads a DCP file into the tree.
-TTree *LoadDCPFile(char *Filename)
+void LoadDCPFile(string Filename)
 {
   // Like the function above, we create the configuration and set up the tree.
   TDAQConfig *DAQConfig = PrepareConfig();
+
   TTree *MielTree = new TTree("MielTree", "Miel event tree");
   DAQConfig->InitTree(MielTree);
   // Now, we need to create another object that does the actual loading. This
@@ -165,8 +173,8 @@ TTree *LoadDCPFile(char *Filename)
   // DCP file and how to store it in the tree.
   TDCPReader Reader(DAQConfig);
   // This does the actual DCP->TTree load.
-  Reader.FillTreeFromDCPFile(MielTree, Filename);
+  Reader.FillTreeFromDCPFile(MielTree, Filename.c_str());
   // Like above, tidy up and return.
   delete DAQConfig;
-  return MielTree;
+  if (DEBUG) cout << " End of LoadDCPFile " << endl;
 }
