@@ -149,20 +149,21 @@ int main(int argc, char **argv) {
 		//nentries = 1000000 ; // experimenting value
 
 		// progress bar variables
-		char BarString[29] = "[                     ] (   )";
+		char BarString[30] = "[                     ] (   )";
 		int  Loop = 0 ; 
 		printf("Processing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, 0,0);
 		fflush(stdout);
   
     	int GoodMiel = 0 ;
-		for (int j=0 ; j < nentries; j++) {
+    	int j = 0 ; 
+		for (j=0 ; j < nentries; j++) {
 		
 			// progress bar			
 			if (j % 1000 == 1 ) {
 				printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, j,GoodMiel);
 	   			fflush(stdout);
 			    }
-			if (j % 10000==1) BarString[26] = NextCycle();
+			if (j % 10000==1) BarString[27] = NextCycle();
 			if (j % (nentries/20)==1) {
 				BarString[Loop+1] = '=';
 				printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, j,GoodMiel);
