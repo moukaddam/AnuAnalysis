@@ -47,7 +47,7 @@ using namespace std;
 //
 // **************************************************************
 struct Miel_st {
- UShort_t Miel[26];
+ UShort_t TableAt[26];
  } gMiel_st; // old tree , struct based
 
 enum IDENTITY {
@@ -58,7 +58,6 @@ enum IDENTITY {
                        MielT3T4,  MielT3T5,  MielT3T6,
                                   MielT4T5,  MielT4T6,
                                              MielT5T6};
-
 
 enum FileOption {NONE, ROOTFILE, CALFILE} ; 
  vector <char*> gRootFilesList;
@@ -169,7 +168,7 @@ int main(int argc, char **argv) {
 
 			int SEG = -1 ; // this is the origin of time
 			for (int seg = 0 ; seg < 6 ; seg++ ) {
-				if (gMiel_st.Miel[seg] > 0) { // keep this good event
+				if (gMiel_st.TableAt[seg] > 0) { // keep this good event
 					GoodMiel++;					
 					GoodEvent=true;
 					if(!TimeOriginSet) {
@@ -179,32 +178,31 @@ int main(int argc, char **argv) {
 						//getchar();
 					 	}
 					int time = GetTimeDifference(SEG,seg);
-					gMielData->SetMiel(seg, gMiel_st.Miel[seg],
-					CalibrateMielEnergy(seg,gMiel_st.Miel[seg]),
+					gMielData->SetMiel(seg, gMiel_st.TableAt[seg],
+					CalibrateMielEnergy(seg,gMiel_st.TableAt[seg]),
 					CalibrateMielTime(SEG,seg,time) ) ;
 				}
 				
 			}
 			
 			//gammas
-			gMielData->SetAptherix(gMiel_st.Miel[Aptherix]);
+			gMielData->SetAptherix(gMiel_st.TableAt[Aptherix]);
 			//Control Measurements
-			gMielData->SetHallProbe(gMiel_st.Miel[HallProbe]);
-			gMielData->SetVcontE(gMiel_st.Miel[VcontE]);	
-			gMielData->SetVContG(gMiel_st.Miel[VcontG]);
-			gMielData->SetChopper(gMiel_st.Miel[Chopper]);
+			gMielData->SetHallProbe(gMiel_st.TableAt[HallProbe]);
+			gMielData->SetVcontE(gMiel_st.TableAt[VcontE]);	
+			gMielData->SetVContG(gMiel_st.TableAt[VcontG]);
+			gMielData->SetChopper(gMiel_st.TableAt[Chopper]);
 		
 			//FillHist(); 
 			if (GoodEvent){
 				//cout << " G O O D   E V E N T " << endl;	
 				gMielEvent->SetMielData(gMielData); // Calculate positions, patterns, etc..
 				gMielEvent->BuildAddBack(); //Calculate AddBack
-				getchar() ;
-				PrintBasicMiel();
-				getchar() ;
-				gMielData->Print();				
+		
+				//PrintBasicMiel();
+				//gMielData->Print();				
 				//gMielEvent->Print();
-				getchar() ;
+				//getchar() ;
 				}
 		
 			gNewTree->Fill();	// fill the tree	
@@ -255,46 +253,46 @@ void PrintBasicMiel(){
 	
 	cout << "Energy : \n" ;
 	cout << "E1" << " \t" << "E2" << " \t" << "E3" << " \t" << "E4" << " \t" << "E5" << " \t" << "E6" << " \n";
-	cout << gMiel_st.Miel[Miel1E] << " \t";
-	cout << gMiel_st.Miel[Miel2E] << " \t";
-	cout << gMiel_st.Miel[Miel3E] << " \t";
-	cout << gMiel_st.Miel[Miel4E] << " \t";
-	cout << gMiel_st.Miel[Miel5E] << " \t";
-	cout << gMiel_st.Miel[Miel6E] << " \n";
+	cout << gMiel_st.TableAt[Miel1E] << " \t";
+	cout << gMiel_st.TableAt[Miel2E] << " \t";
+	cout << gMiel_st.TableAt[Miel3E] << " \t";
+	cout << gMiel_st.TableAt[Miel4E] << " \t";
+	cout << gMiel_st.TableAt[Miel5E] << " \t";
+	cout << gMiel_st.TableAt[Miel6E] << " \n";
 	
 	cout << "Time : \n" ;
 	cout << "T1T2" << " \t" << "T1T3" << " \t" << "T1T4" << " \t" << "T1T5" << " \t" << "T1T6" << " \n" ;
-	cout << gMiel_st.Miel[MielT1T2] << " \t";
-	cout << gMiel_st.Miel[MielT1T3] << " \t";
-	cout << gMiel_st.Miel[MielT1T4] << " \t";
-	cout << gMiel_st.Miel[MielT1T5] << " \t";
-	cout << gMiel_st.Miel[MielT1T6] << " \n";
+	cout << gMiel_st.TableAt[MielT1T2] << " \t";
+	cout << gMiel_st.TableAt[MielT1T3] << " \t";
+	cout << gMiel_st.TableAt[MielT1T4] << " \t";
+	cout << gMiel_st.TableAt[MielT1T5] << " \t";
+	cout << gMiel_st.TableAt[MielT1T6] << " \n";
 
 	cout << "T2T3" << " \t" << "T2T4" << " \t" << "T2T5" << " \t" << "T2T6" << " \n" ;
-	cout << gMiel_st.Miel[MielT2T3] << " \t";
-	cout << gMiel_st.Miel[MielT2T4] << " \t";
-	cout << gMiel_st.Miel[MielT2T5] << " \t";
-	cout << gMiel_st.Miel[MielT2T6] << " \n";
+	cout << gMiel_st.TableAt[MielT2T3] << " \t";
+	cout << gMiel_st.TableAt[MielT2T4] << " \t";
+	cout << gMiel_st.TableAt[MielT2T5] << " \t";
+	cout << gMiel_st.TableAt[MielT2T6] << " \n";
 	
 	cout << "T3T4" << " \t" << "T3T5" << " \t" << "T3T6" << " \n" ;
-	cout << gMiel_st.Miel[MielT3T4] << " \t";
-	cout << gMiel_st.Miel[MielT3T5] << " \t";
-	cout << gMiel_st.Miel[MielT3T6] << " \n";
+	cout << gMiel_st.TableAt[MielT3T4] << " \t";
+	cout << gMiel_st.TableAt[MielT3T5] << " \t";
+	cout << gMiel_st.TableAt[MielT3T6] << " \n";
 
 	cout << "T4T5" << " \t" << "T4T6" << " \n" ;
-	cout << gMiel_st.Miel[MielT4T5] << " \t";
-	cout << gMiel_st.Miel[MielT4T6] << " \n";
+	cout << gMiel_st.TableAt[MielT4T5] << " \t";
+	cout << gMiel_st.TableAt[MielT4T6] << " \n";
 
 	cout << "T5T6" << " \n" ;
-	cout << gMiel_st.Miel[MielT5T6] << " \n";
+	cout << gMiel_st.TableAt[MielT5T6] << " \n";
 	
 	cout << "Other : \n" ;	
 	cout << "gamma" << " \t" << "hall" << " \t" << "VcontE" << " \t" << "VcontG" << " \n" ;
-	cout << gMiel_st.Miel[Aptherix] << " \t";
-	cout << gMiel_st.Miel[HallProbe] << " \t";
-	cout << gMiel_st.Miel[VcontE] << " \t";
-	cout << gMiel_st.Miel[VcontG]<< " \t";
-	cout << gMiel_st.Miel[Chopper] << " \n";
+	cout << gMiel_st.TableAt[Aptherix] << " \t";
+	cout << gMiel_st.TableAt[HallProbe] << " \t";
+	cout << gMiel_st.TableAt[VcontE] << " \t";
+	cout << gMiel_st.TableAt[VcontG]<< " \t";
+	cout << gMiel_st.TableAt[Chopper] << " \n";
 	}
 	
 
@@ -307,29 +305,29 @@ int GetTimeDifference(int SEG, int seg){
 	if (SEG > seg ) sign = -sign;
 	
 	if (SEG == 0 ) {
-		if (seg == 1)	return sign*gMiel_st.Miel[MielT1T2];
-		if (seg == 2)	return sign*gMiel_st.Miel[MielT1T3];
-		if (seg == 3)	return sign*gMiel_st.Miel[MielT1T4];
-		if (seg == 4)	return sign*gMiel_st.Miel[MielT1T5];
-		if (seg == 5)	return sign*gMiel_st.Miel[MielT1T6];
+		if (seg == 1)	return sign*gMiel_st.TableAt[MielT1T2];
+		if (seg == 2)	return sign*gMiel_st.TableAt[MielT1T3];
+		if (seg == 3)	return sign*gMiel_st.TableAt[MielT1T4];
+		if (seg == 4)	return sign*gMiel_st.TableAt[MielT1T5];
+		if (seg == 5)	return sign*gMiel_st.TableAt[MielT1T6];
 		}
 	if (SEG == 1 ) {
-		if (seg == 2)	return sign*gMiel_st.Miel[MielT2T3];
-		if (seg == 3)	return sign*gMiel_st.Miel[MielT2T4];
-		if (seg == 4)	return sign*gMiel_st.Miel[MielT2T5];
-		if (seg == 5)	return sign*gMiel_st.Miel[MielT2T6];
+		if (seg == 2)	return sign*gMiel_st.TableAt[MielT2T3];
+		if (seg == 3)	return sign*gMiel_st.TableAt[MielT2T4];
+		if (seg == 4)	return sign*gMiel_st.TableAt[MielT2T5];
+		if (seg == 5)	return sign*gMiel_st.TableAt[MielT2T6];
 		}
 	if (SEG == 2) {
-		if (seg == 3)	return sign*gMiel_st.Miel[MielT3T4];
-		if (seg == 4)	return sign*gMiel_st.Miel[MielT3T5];
-		if (seg == 5)	return sign*gMiel_st.Miel[MielT3T6];
+		if (seg == 3)	return sign*gMiel_st.TableAt[MielT3T4];
+		if (seg == 4)	return sign*gMiel_st.TableAt[MielT3T5];
+		if (seg == 5)	return sign*gMiel_st.TableAt[MielT3T6];
 		}
 	if (SEG == 3) {
-		if (seg == 4)	return sign*gMiel_st.Miel[MielT4T5];
-		if (seg == 5)	return sign*gMiel_st.Miel[MielT4T6];
+		if (seg == 4)	return sign*gMiel_st.TableAt[MielT4T5];
+		if (seg == 5)	return sign*gMiel_st.TableAt[MielT4T6];
 		}
 	if (SEG == 4) {
-		if (seg == 5)	return sign*gMiel_st.Miel[MielT5T6];
+		if (seg == 5)	return sign*gMiel_st.TableAt[MielT5T6];
 		}		
 }
 
