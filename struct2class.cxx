@@ -2,6 +2,7 @@
 // compile :
 //  g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so  -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas
 //g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so  libAnalysis/libMielEvent.so -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas 
+
 // #########################################################################################
 
 //c++
@@ -54,12 +55,7 @@ struct Miel_st {
                                                                              UShort_t MielT5T6;
  } gMiel_st; // old tree , struct based
 
-TMielData* gMielData; // new tree, data vector based branch, data organised, energy calibrated
-TMielEvent* gMielEvent; 		  // new tree, analysis branch, hitpattern, add-back
-TTree *gNewTree ;
-TTree *gOldTree ;
-TFile *gInputFile; 
-TFile *gOutputFile;
+
 int gCycle=0;
 
 enum FileOption {NONE, ROOTFILE, CALFILE} ; 
@@ -82,7 +78,7 @@ vector < vector<int> > gTimeCombinations;
 bool gEnergyCalibrationRead;
 
 //Declare functions
-void GetEvent(int i); 
+void GetEvent(TTree* OldTree, int i); 
 void ResetBuffers(); 
 void ReadEnergyCalibration(string filename);
 void ReadTimeCalibration(string filename);
@@ -99,8 +95,19 @@ char NextCycle() ;
 
 int main(int argc, char **argv) {
 
+
 	// parse input line  
 	ParseInputLine(argc,argv) ; 
+	
+	//Data structures
+	TMielData* gMielData; // new tree, data vector based branch, data organised, energy calibrated
+	TMielEvent* gMielEvent; 		  // new tree, analysis branch, hitpattern, add-back
+	//Data Files
+	TFile *gInputFile; 
+	TFile *gOutputFile;
+	//Trees
+	TTree *gNewTree ;
+	TTree *gOldTree ;
 
 	// Analyse root files  
 	bool GoodEvent=false; 
@@ -136,7 +143,7 @@ int main(int argc, char **argv) {
 		//Iterate through events
 		Int_t nentries = (Int_t)gOldTree->GetEntries();
 		cout << "Tree contains " << nentries <<endl;
-		nentries = 1000000 ; // experimenting value
+		//nentries = 1000000 ; // experimenting value
 
 		// progress bar variables
 		char BarString[28] = "[                    ]    ";
@@ -155,6 +162,7 @@ int main(int argc, char **argv) {
 			BarString[Loop+1] = '=';
 			BarString[24] = NextCycle();
 			printf("\rProcessing events from file %s ... %s (%d events)",inputname.c_str(), BarString, j);
+			printf("\r");
 			fflush(stdout);
 			Loop++ ; 
 			}
@@ -162,7 +170,7 @@ int main(int argc, char **argv) {
 			//Get the entry and set the events in the new Tree
 			GoodEvent=false; 
 			bool TimeOriginSet = false ;
-			GetEvent(j);	
+			GetEvent(gOldTree, j);	
 
 			int SEG = -1 ; // this is the origin of time
 			for (int seg = 0 ; seg < 6 ; seg++ ) {
@@ -207,15 +215,18 @@ int main(int argc, char **argv) {
 			gNewTree->Fill();	// fill the tree	
 			gMielData->Clear();
 			gMielEvent->Clear();
+			if (j % 10000 == 0 ) gNewTree->AutoSave();  
 			}
 		printf("\rProcessing events from file %s ... %s (%d events) Done! \n",inputname.c_str(), BarString, nentries);
 		
 		// Write the new trees in seperate files 
-		gNewTree->AutoSave();  
-
+		gNewTree->Write();	// fill the tree	
 		gOutputFile->Write();
 		gOutputFile->Close(); 
-		
+
+		gNewTree=NULL;
+		gOldTree=NULL;		
+		gOutputFile=NULL;
 		}//end of input files
 
 	}//end 
@@ -330,7 +341,7 @@ void ResetBuffers(){
 	gBuffer_Hall =   -1;
 	gBuffer_VContE =  -1; 
 	gBuffer_VContG =  -1;
-    gBuffer_Chopper = -1;	
+    	gBuffer_Chopper = -1;	
 
 	gBuffer_energy.resize(6,-1); 
 	//gBuffer_time.resize(15,-1);
@@ -338,10 +349,10 @@ void ResetBuffers(){
 } 
 
 // ##############################
-void GetEvent(int i){
+void GetEvent(TTree* OldTree, int i){
 
 	ResetBuffers();
-	gOldTree->GetEntry(i);
+	OldTree->GetEntry(i);
 	
     //Fill the buffers 
 		//Miel Energies
@@ -520,12 +531,13 @@ void ParseInputLine(int argc, char **argv) {
 }
 
 char NextCycle(){
-
+/*
 if (gCycle==0 )  { gCycle++ ; return '-' ; } 
 if (gCycle==1 )  { gCycle++ ; return '\\' ; }
 if (gCycle==2 )  { gCycle++ ; return '|' ; }
 if (gCycle==3 )  { gCycle++ ; return '/' ; }
 if (gCycle==4 )  { gCycle=1 ; return '-' ; }
-
+*/
+return '#' ;
 }
 
