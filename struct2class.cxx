@@ -1,9 +1,7 @@
 // #########################################################################################
 // compile :
-//  g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so libAnalysis/libMielEvent.so\
-                -IlibAnalysis --std=c++0x -o newstruct2class\
-                -O2 `root-config --cflags --libs`\
-                -lTreePlayer -lgsl -lgslcblas 
+//  g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so  -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas
+//g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so  libAnalysis/libMielEvent.so -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas 
 // #########################################################################################
 
 //c++
@@ -62,6 +60,7 @@ TTree *gNewTree ;
 TTree *gOldTree ;
 TFile *gInputFile; 
 TFile *gOutputFile;
+int gCycle=0;
 
 enum FileOption {NONE, ROOTFILE, CALFILE} ; 
  vector <char*> gRootFilesList;
@@ -70,12 +69,12 @@ enum FileOption {NONE, ROOTFILE, CALFILE} ;
  
 //Buffer variables
 vector <UShort_t>	gBuffer_energy; 
-UShort_t gBuffer_time[6][6]	; 
-UShort_t gBuffer_Gamma ; 
-UShort_t gBuffer_Hall ; 
-UShort_t gBuffer_VContE ;  
-UShort_t gBuffer_VContG ; 	
-UShort_t gBuffer_Chopper ;
+UShort_t 		gBuffer_time[6][6]; 
+UShort_t 		gBuffer_Gamma ; 
+UShort_t 		gBuffer_Hall ; 
+UShort_t 		gBuffer_VContE ;  
+UShort_t 		gBuffer_VContG ; 	
+UShort_t 		gBuffer_Chopper ;
 
 vector < vector<double> > gCalibration;
 vector <double> gTimeCalibration;
@@ -92,6 +91,7 @@ float CalibrateMielTime(int SEGMENT, int segment, int time);
 void PrintBuffers();
 void PrintBasicMiel();
 void ParseInputLine(int argc, char **argv);
+char NextCycle() ; 
 
 // #########################################################################################
 //                                Main function
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 	bool GoodEvent=false; 
 	gEnergyCalibrationRead=false;
 	gMielData 	= new TMielData(); 	// organise data
-	gMielEvent 	= new TMielEvent(); // analyse data
+	gMielEvent 	= new TMielEvent();     // analyse data
   
 	for( unsigned z = 0 ; z<gRootFilesList.size(); z++)	{
 					  
@@ -136,24 +136,25 @@ int main(int argc, char **argv) {
 		//Iterate through events
 		Int_t nentries = (Int_t)gOldTree->GetEntries();
 		cout << "Tree contains " << nentries <<endl;
-		nentries = 100000 ; // experimenting value
+		nentries = 1000000 ; // experimenting value
 
 		// progress bar variables
-		char BarString[23] = "[                    ]";
+		char BarString[28] = "[                    ]    ";
 		int  Loop = 0 ; 
-		printf("Processing events from file %s ... %s (%ld events)",inputname.c_str(), BarString, 0);
+		printf("Processing events from file %s ... %s (%d events)",inputname.c_str(), BarString, 0);
 		fflush(stdout);
   
 		for (int j=0 ; j < nentries; j++) {
 		
 		    // progress bar
 		    if (j % 1000 == 0       ) {
-		    printf("\rProcessing events from file %s ... %s (%ld events)",inputname.c_str(), BarString, j);
+		    printf("\rProcessing events from file %s ... %s (%d events)",inputname.c_str(), BarString, j);
    			fflush(stdout);
 		    }
 			if (j % (nentries/20)==0) {
 			BarString[Loop+1] = '=';
-			printf("\rProcessing events from file %s ... %s (%ld events)",inputname.c_str(), BarString, j);
+			BarString[24] = NextCycle();
+			printf("\rProcessing events from file %s ... %s (%d events)",inputname.c_str(), BarString, j);
 			fflush(stdout);
 			Loop++ ; 
 			}
@@ -173,7 +174,9 @@ int main(int argc, char **argv) {
 						//cout << " SEG = "<< SEG <<"\t";
 						//getchar();
 					 	} 
-					gMielData->SetMiel(seg, gBuffer_energy.at(seg), CalibrateMielEnergy(seg,gBuffer_energy.at(seg)), CalibrateMielTime(SEG,seg,gBuffer_time[SEG][seg]) ) ;
+					gMielData->SetMiel(seg, gBuffer_energy.at(seg),
+					CalibrateMielEnergy(seg,gBuffer_energy.at(seg)),
+					CalibrateMielTime(SEG,seg,gBuffer_time[SEG][seg]) ) ;
 				}
 				
 			}
@@ -191,16 +194,13 @@ int main(int argc, char **argv) {
 			//FillHist(); 
 		
 			if (GoodEvent){
-
-				//cout << " G O O D   E V E N T " << endl;
-				//PrintBasicMiel();
-				//PrintBuffers();
-				//gMielData->Print();
-						
+				//cout << " G O O D   E V E N T " << endl;	
 				gMielEvent->SetMielData(gMielData); // Calculate positions, patterns, etc..
 				gMielEvent->BuildAddBack(); //Calculate AddBack
+				//PrintBasicMiel();
+				//PrintBuffers();
+				//gMielData->Print();				
 				//gMielEvent->Print();
-
 				//getchar() ;
 				}
 		
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
 			gMielData->Clear();
 			gMielEvent->Clear();
 			}
-		printf("\rProcessing events from file %s ... %s (%ld events) Done! \n",inputname.c_str(), BarString, nentries);
+		printf("\rProcessing events from file %s ... %s (%d events) Done! \n",inputname.c_str(), BarString, nentries);
 		
 		// Write the new trees in seperate files 
 		gNewTree->AutoSave();  
@@ -519,4 +519,13 @@ void ParseInputLine(int argc, char **argv) {
 
 }
 
+char NextCycle(){
+
+if (gCycle==0 )  { gCycle++ ; return '-' ; } 
+if (gCycle==1 )  { gCycle++ ; return '\\' ; }
+if (gCycle==2 )  { gCycle++ ; return '|' ; }
+if (gCycle==3 )  { gCycle++ ; return '/' ; }
+if (gCycle==4 )  { gCycle=1 ; return '-' ; }
+
+}
 
