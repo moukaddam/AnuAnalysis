@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 		//nentries = 1000000 ; // experimenting value
 
 		// progress bar variables
-		char BarString[30] = "[                     ] (   )";
+		char BarString[30] = "[                     ] <( )>";
 		int  Loop = 0 ; 
 		printf("Processing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, 0,0);
 		fflush(stdout);
@@ -159,11 +159,11 @@ int main(int argc, char **argv) {
 		for (j=0 ; j < nentries; j++) {
 		
 			// progress bar			
-			if (j % 1000 == 1 ) {
+			if (j % 500 == 1 ) {
 				printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, j,GoodMiel);
 	   			fflush(stdout);
 			    }
-			if (j % 10000==1) BarString[27] = NextCycle();
+			if (j % 5000==1) BarString[26] = NextCycle();
 			if (j % (nentries/20)==1) {
 				BarString[Loop+1] = '=';
 				printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, j,GoodMiel);
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
 			gNewTree->Fill();	// fill the tree	
 			gMielData->Clear();
 			gMielEvent->Clear();
-			if (j % 5000 == 0 ) gNewTree->AutoSave("FlushBaskets");  
+			if (j % 100000 == 0 ) gNewTree->AutoSave("FlushBaskets");  
 			}
 		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events)  Done! \n",inputname.c_str(), BarString, j,GoodMiel);
 		
