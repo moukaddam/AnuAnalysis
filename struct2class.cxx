@@ -1,9 +1,9 @@
 // #########################################################################################
-// compile :
-//  g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so libAnalysis/libMielEvent.so\
-                -IlibAnalysis --std=c++0x -o newstruct2class\
-                -O2 `root-config --cflags --libs`\
-                -lTreePlayer -lgsl -lgslcblas 
+// compile only MielData: \
+ g++ struct2class.cxx libAnalysis/libMielData.so  -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas
+// compile all : \
+ g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so  libAnalysis/libMielEvent.so -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas 
+
 // #########################################################################################
 
 //c++
@@ -56,12 +56,8 @@ struct Miel_st {
                                                                              UShort_t MielT5T6;
  } gMiel_st; // old tree , struct based
 
-TMielData* gMielData; // new tree, data vector based branch, data organised, energy calibrated
-TMielEvent* gMielEvent; 		  // new tree, analysis branch, hitpattern, add-back
-TTree *gNewTree ;
-TTree *gOldTree ;
-TFile *gInputFile; 
-TFile *gOutputFile;
+
+
 
 enum FileOption {NONE, ROOTFILE, CALFILE} ; 
  vector <char*> gRootFilesList;
@@ -70,12 +66,13 @@ enum FileOption {NONE, ROOTFILE, CALFILE} ;
  
 //Buffer variables
 vector <UShort_t>	gBuffer_energy; 
-UShort_t gBuffer_time[6][6]	; 
-UShort_t gBuffer_Gamma ; 
-UShort_t gBuffer_Hall ; 
-UShort_t gBuffer_VContE ;  
-UShort_t gBuffer_VContG ; 	
-UShort_t gBuffer_Chopper ;
+UShort_t 		gBuffer_time[6][6]; 
+UShort_t 		gBuffer_Gamma ; 
+UShort_t 		gBuffer_Hall ; 
+UShort_t 		gBuffer_VContE ;  
+UShort_t 		gBuffer_VContG ; 	
+UShort_t 		gBuffer_Chopper ;
+int 			gCycle=0;
 
 vector < vector<double> > gCalibration;
 vector <double> gTimeCalibration;
@@ -83,8 +80,9 @@ vector < vector<int> > gTimeCombinations;
 bool gEnergyCalibrationRead;
 
 //Declare functions
-void GetEvent(int i); 
+void GetEvent(TTree* OldTree, int i); 
 void ResetBuffers(); 
+void ResetTimeBuffer();
 void ReadEnergyCalibration(string filename);
 void ReadTimeCalibration(string filename);
 float CalibrateMielEnergy(int segment, int E_charge); 
@@ -92,6 +90,7 @@ float CalibrateMielTime(int SEGMENT, int segment, int time);
 void PrintBuffers();
 void PrintBasicMiel();
 void ParseInputLine(int argc, char **argv);
+char NextCycle() ; 
 
 // #########################################################################################
 //                                Main function
@@ -99,14 +98,25 @@ void ParseInputLine(int argc, char **argv);
 
 int main(int argc, char **argv) {
 
+
 	// parse input line  
 	ParseInputLine(argc,argv) ; 
+	
+	//Data structures
+	TMielData* gMielData; // new tree, data vector based branch, data organised, energy calibrated
+	TMielEvent* gMielEvent; 		  // new tree, analysis branch, hitpattern, add-back
+	//Data Files
+	TFile *gInputFile; 
+	TFile *gOutputFile;
+	//Trees
+	TTree *gNewTree ;
+	TTree *gOldTree ;
 
 	// Analyse root files  
 	bool GoodEvent=false; 
 	gEnergyCalibrationRead=false;
 	gMielData 	= new TMielData(); 	// organise data
-	gMielEvent 	= new TMielEvent(); // analyse data
+	gMielEvent 	= new TMielEvent();     // analyse data
   
 	for( unsigned z = 0 ; z<gRootFilesList.size(); z++)	{
 					  
@@ -130,42 +140,45 @@ int main(int argc, char **argv) {
 
 		//point to the new tree and set the addresses
 		gNewTree = new TTree("MielDataTree","MielDataTree");
-		gNewTree->Branch("TMielData",&gMielData,16000,99);
-		gNewTree->Branch("TMielEvent",&gMielEvent,16000,99);
+		gNewTree->Branch("TMielData",&gMielData);
+		gNewTree->Branch("TMielEvent",&gMielEvent);
 
 		//Iterate through events
 		Int_t nentries = (Int_t)gOldTree->GetEntries();
 		cout << "Tree contains " << nentries <<endl;
-		//nentries = 100000 ; // experimenting value
+		//nentries = 1000000 ; // experimenting value
 
 		// progress bar variables
-		char BarString[24] = "[                     ]";
+		char BarString[29] = "[                     ] (   )";
 		int  Loop = 0 ; 
-		printf("Processing events from file %s ... %s (%ld events)",inputname.c_str(), BarString, 0);
+		printf("Processing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, 0,0);
 		fflush(stdout);
   
+    	int GoodMiel = 0 ;
 		for (int j=0 ; j < nentries; j++) {
 		
-		    // progress bar
-		    if (j % 1000 == 0       ) {
-		    printf("\rProcessing events from file %s ... %s (%ld events)",inputname.c_str(), BarString, j);
-   			fflush(stdout);
-		    }
-			if (j % (nentries/20)==0) {
-			BarString[Loop+1] = '=';
-			printf("\rProcessing events from file %s ... %s (%ld events)",inputname.c_str(), BarString, j);
-			fflush(stdout);
-			Loop++ ; 
-			}
+			// progress bar			
+			if (j % 1000 == 1 ) {
+				printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, j,GoodMiel);
+	   			fflush(stdout);
+			    }
+			if (j % 10000==1) BarString[26] = NextCycle();
+			if (j % (nentries/20)==1) {
+				BarString[Loop+1] = '=';
+				printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, j,GoodMiel);
+				fflush(stdout);
+				Loop++ ; 
+				}
 			
 			//Get the entry and set the events in the new Tree
 			GoodEvent=false; 
 			bool TimeOriginSet = false ;
-			GetEvent(j);	
+			GetEvent(gOldTree, j);	
 
 			int SEG = -1 ; // this is the origin of time
 			for (int seg = 0 ; seg < 6 ; seg++ ) {
 				if (gBuffer_energy.at(seg) > 0) { // keep this good event
+					GoodMiel++;					
 					GoodEvent=true;
 					if(!TimeOriginSet) {
 						SEG = seg ; 
@@ -173,7 +186,9 @@ int main(int argc, char **argv) {
 						//cout << " SEG = "<< SEG <<"\t";
 						//getchar();
 					 	} 
-					gMielData->SetMiel(seg, gBuffer_energy.at(seg), CalibrateMielEnergy(seg,gBuffer_energy.at(seg)), CalibrateMielTime(SEG,seg,gBuffer_time[SEG][seg]) ) ;
+					gMielData->SetMiel(seg, gBuffer_energy.at(seg),
+					CalibrateMielEnergy(seg,gBuffer_energy.at(seg)),
+					CalibrateMielTime(SEG,seg,gBuffer_time[SEG][seg]) ) ;
 				}
 				
 			}
@@ -189,31 +204,31 @@ int main(int argc, char **argv) {
 		
 			//FillHist(); 
 			if (GoodEvent){
-
-				//cout << " G O O D   E V E N T " << endl;
-				//PrintBasicMiel();
-				//PrintBuffers();
-				//gMielData->Print();
-						
+				//cout << " G O O D   E V E N T " << endl;	
 				gMielEvent->SetMielData(gMielData); // Calculate positions, patterns, etc..
 				gMielEvent->BuildAddBack(); //Calculate AddBack
+				//PrintBasicMiel();
+				//PrintBuffers();
+				//gMielData->Print();				
 				//gMielEvent->Print();
-
 				//getchar() ;
 				}
 		
 			gNewTree->Fill();	// fill the tree	
 			gMielData->Clear();
 			gMielEvent->Clear();
+			if (j % 5000 == 0 ) gNewTree->AutoSave("FlushBaskets");  
 			}
-		printf("\rProcessing events from file %s ... %s (%ld events) Done! \n",inputname.c_str(), BarString, nentries);
+		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events)  Done! \n",inputname.c_str(), BarString, j,GoodMiel);
 		
 		// Write the new trees in seperate files 
-		gNewTree->AutoSave();  
-
+		gNewTree->Write();	// fill the tree	
 		gOutputFile->Write();
 		gOutputFile->Close(); 
-		
+
+		gNewTree=NULL;
+		gOldTree=NULL;		
+		gOutputFile=NULL;
 		}//end of input files
 
 	}//end 
@@ -323,23 +338,21 @@ void PrintBuffers(){
 void ResetBuffers(){
 
 	gBuffer_energy.clear(); 
-	//gBuffer_time.clear();
+	gBuffer_energy.resize(6,-1); 
+	//ResetTimeBuffer();
 	gBuffer_Gamma =   -1;
 	gBuffer_Hall =   -1;
 	gBuffer_VContE =  -1; 
 	gBuffer_VContG =  -1;
     gBuffer_Chopper = -1;	
-
-	gBuffer_energy.resize(6,-1); 
-	//gBuffer_time.resize(15,-1);
 	
 } 
 
 // ##############################
-void GetEvent(int i){
+void GetEvent(TTree* OldTree, int i){
 
 	ResetBuffers();
-	gOldTree->GetEntry(i);
+	OldTree->GetEntry(i);
 	
     //Fill the buffers 
 		//Miel Energies
@@ -355,7 +368,7 @@ void GetEvent(int i){
 
 		//Miel times
 	if(gBuffer_energy.size()==6) {
- 
+
  		gBuffer_time[0][0] =   0; 
 		gBuffer_time[0][1] =   gMiel_st.MielT1T2; 
 		gBuffer_time[0][2] =   gMiel_st.MielT1T3; 
@@ -517,4 +530,22 @@ void ParseInputLine(int argc, char **argv) {
 
 }
 
+char NextCycle(){
 
+if (gCycle==0 )  { gCycle++ ; return '-' ; } 
+if (gCycle==1 )  { gCycle++ ; return '\\' ; }
+if (gCycle==2 )  { gCycle++ ; return '|' ; }
+if (gCycle==3 )  { gCycle++ ; return '/' ; }
+if (gCycle==4 )  { gCycle=1 ; return '-' ; }
+
+return '#' ;
+}
+
+
+void ResetTimeBuffer(){
+
+for (int i = 0 ; i < 6 ; i++ )
+	for (int j = 0 ; j < 6 ; j++ )
+ 		gBuffer_time[i][j] = -1; 
+
+}

@@ -21,7 +21,6 @@ using namespace std;
 
 // User classes
 #include "TMielEvent.h"
-#include "TMielHit.h"
 
 //Root 
 ClassImp(TMielEvent)

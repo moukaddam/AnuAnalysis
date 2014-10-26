@@ -37,7 +37,7 @@ TDAQADC::TDAQADC(void)
   FNumChannels = 0;
 }
 
-TDAQADC::TDAQADC(const TDAQADC &src)
+TDAQADC::TDAQADC(const TDAQADC &src):TObject(src)
 {
   FInterface = src.FInterface;
   FADCNumber = src.FADCNumber;
@@ -106,7 +106,7 @@ void TDAQADC::SetInterface(int Interface)
 
 void TDAQADC::SetADCNumber(int ADCNumber)
 {
-  FADCNumber = FADCNumber;
+  FADCNumber = ADCNumber;
 }
 
 void TDAQADC::SetFieldName(const char *FieldName)
@@ -144,7 +144,7 @@ TDAQBranch::TDAQBranch(const char *BranchName, const char *BranchDesc)
   FBranchDesc = strdup_safe(BranchDesc);
 }
 
-TDAQBranch::TDAQBranch(const TDAQBranch &src)
+TDAQBranch::TDAQBranch(const TDAQBranch &src):TObject(src)
 {
   FADCs.SetOwner();
   FBranchName = strdup_safe(src.FBranchName);
@@ -241,8 +241,9 @@ TBranch *TDAQBranch::InitTree(TTree *Tree)
   printf("Tree->Branch(\"%s\", NULL, \"%s\");\n", GetBranchName(), LeafList);
 #endif
   
-  TBranch *RetVal = Tree->Branch(GetBranchName(), NULL, LeafList);
-  
+  TBranch *RetVal = Tree->Branch(GetBranchName(), 0, (const char *)LeafList); // MHD : 25 October 2014
+  //  Changes : Added 32000, casting of leaflist, Replace branch address "NULL" by zero
+
   // Done!
   delete[] LeafList;
   delete ADCIter;
@@ -258,7 +259,7 @@ TDAQConfig::TDAQConfig(void)
   FBranches.SetOwner();
 }
 
-TDAQConfig::TDAQConfig(const TDAQConfig &src)
+TDAQConfig::TDAQConfig(const TDAQConfig &src):TObject(src)
 {
   FBranches.SetOwner();
   

@@ -23,7 +23,7 @@ class TMielEvent : public TObject {
 	vector<TMielHit>	fHits; 
 	
 	//Add-back schemes
-	TMielHit			fSum; // calorimeter mode sum of all segments (generates a multiplicity 1 )
+	TMielHit		fSum; // calorimeter mode sum of all segments (generates a multiplicity 1 )
 	vector<TMielHit>	fCluster; //cluster mode (generates a multiplicity 1, 2 and 3 )
 		
 	public:
@@ -50,7 +50,7 @@ class TMielEvent : public TObject {
 	void PushHit(TMielHit)	;
 
 // G E T T E R S (we get objects)
-	int 	GetPattern() 						{	return fPattern	; 	} 	
+	int 	GetPattern() 					{	return fPattern	; 	} 	
 	inline TMielHit GetHit(UShort_t i )			{	return fHits.at(i);	}
 	inline vector<TMielHit> GetHits()			{	return fHits ;		} 	
 	inline TMielHit GetCluster()				{	return fSum ;		} 			

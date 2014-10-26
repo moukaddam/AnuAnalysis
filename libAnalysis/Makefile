@@ -50,7 +50,7 @@ libMielHit.so:	TMielHit.o   TMielHitDict.o
 #---		
 TMielEventDict.cpp:	TMielEvent.h 
 			rootcint -f $@ -c $^	
-libMielEvent.so:	TMielEvent.o   TMielEventDict.o
+libMielEvent.so:	TMielEvent.o   TMielEventDict.o   TMielHit.o   TMielHitDict.o
 		$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
 #------------------------------------------------------------------------------
 clean:
@@ -68,5 +68,5 @@ distclean:
 # Manage dependancies
 #-------------------------
 TMielData.o:		TMielData.cpp		TMielData.h
-TMielHit.o:			TMielHit.cpp		TMielHit.h
-TMielEvent.o:		TMielEvent.cpp		TMielEvent.h
+TMielHit.o:		TMielHit.cpp		TMielHit.h
+TMielEvent.o:		TMielEvent.cpp		TMielEvent.h     TMielHit.h
