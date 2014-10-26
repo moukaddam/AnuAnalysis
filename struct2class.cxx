@@ -136,10 +136,10 @@ int main(int argc, char **argv) {
 		//Iterate through events
 		Int_t nentries = (Int_t)gOldTree->GetEntries();
 		cout << "Tree contains " << nentries <<endl;
-		nentries = 100000 ; // experimenting value
+		//nentries = 100000 ; // experimenting value
 
 		// progress bar variables
-		char BarString[23] = "[                    ]";
+		char BarString[24] = "[                     ]";
 		int  Loop = 0 ; 
 		printf("Processing events from file %s ... %s (%ld events)",inputname.c_str(), BarString, 0);
 		fflush(stdout);
@@ -187,9 +187,7 @@ int main(int argc, char **argv) {
 			gMielData->SetVContG(gBuffer_VContG);
 			gMielData->SetChopper(gBuffer_Chopper);
 		
-
 			//FillHist(); 
-		
 			if (GoodEvent){
 
 				//cout << " G O O D   E V E N T " << endl;
