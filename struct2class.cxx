@@ -80,6 +80,7 @@ bool gEnergyCalibrationRead;
 //Declare functions
 void GetEvent(TTree* OldTree, int i); 
 void ResetBuffers(); 
+void ResetTimeBuffer();
 void ReadEnergyCalibration(string filename);
 void ReadTimeCalibration(string filename);
 float CalibrateMielEnergy(int segment, int E_charge); 
@@ -336,15 +337,13 @@ void PrintBuffers(){
 void ResetBuffers(){
 
 	gBuffer_energy.clear(); 
-	//gBuffer_time.clear();
+	gBuffer_energy.resize(6,-1); 
+	ResetTimeBuffer();\
 	gBuffer_Gamma =   -1;
 	gBuffer_Hall =   -1;
 	gBuffer_VContE =  -1; 
 	gBuffer_VContG =  -1;
     	gBuffer_Chopper = -1;	
-
-	gBuffer_energy.resize(6,-1); 
-	//gBuffer_time.resize(15,-1);
 	
 } 
 
@@ -541,3 +540,11 @@ if (gCycle==4 )  { gCycle=1 ; return '-' ; }
 return '#' ;
 }
 
+
+void ResetTimeBuffer(){
+
+for (int i = 0 ; i < 6 ; i++ )
+	for (int j = 0 ; j < 6 ; j++ )
+ 		gBuffer_time[i][j] = -1; 
+
+}
