@@ -190,7 +190,7 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 	//calculate segment 
 	unsigned short segment = 0 ; 
 	for (unsigned i = 0 ; i < hits.size() ; i++ ) {
-		segment = segment*10 + hits.at(i).GetSegment();  // e.g if segment 1+2 => Segment = 12
+		segment = segment*10 + (hits.at(i).GetSegment() + 1);  // e.g if segment 1+2 => Segment = 12
 		}
 	aMielHit->SetSegment(segment) ; 
 	
