@@ -3,7 +3,6 @@
  g++ struct2class.cxx libAnalysis/libMielData.so  -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas
 // compile all : \
  g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so  libAnalysis/libMielEvent.so -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas 
-
 // #########################################################################################
 
 //c++
@@ -26,26 +25,21 @@ using namespace std;
 #include <TH1F.h>
 #include <TF1.h>
 #include <TString.h>
+#include <TStopwatch.h>
 
 //User 
 #include "./libAnalysis/TMielData.h"
 #include "./libAnalysis/TMielEvent.h"
 
-// #########################################################################################
-//                               global variables 
-// #########################################################################################
 
 //Declare global variables
 
 //structure to read the basic tree
-// *************************************************************************************
-// I M P O R T A N T  : The type (uShort_t) and the order of the declaration is relevant
+// *****************************************************************************
+// I M P O R T A N T  : 
+// The type (uShort_t) and the order of the declaration is relevant
 // Use : MielTree->Print() to print the structure
-//
-//*Br    0 :Miel      : Miel1E/s:Miel2E:Miel3E:Miel4E:Miel5E:Miel6E:Aptherix:  *
-//*         | HallProbe:VcontE:VcontG:Miel1T:Miel2T:Miel3T:Miel4T:Miel5T:Miel6T*
-//
-// **************************************************************
+// *****************************************************************************
 struct Miel_st {
  UShort_t TableAt[26];
  } gMiel_st; // old tree , struct based
@@ -65,8 +59,7 @@ enum FileOption {NONE, ROOTFILE, CALFILE} ;
  
  
 //Other variables
-int 			gCycle=0;
-
+int    gCycle=0;
 vector < vector<double> > gCalibration;
 vector <double> gTimeCalibration;
 vector < vector<int> > gTimeCombinations;
@@ -107,16 +100,22 @@ int main(int argc, char **argv) {
 	gEnergyCalibrationRead=false;
 	gMielData 	= new TMielData(); 	// organise data
 	gMielEvent 	= new TMielEvent();     // analyse data
-  
+    
+    // Stopwatch treating time
+    TStopwatch stopwatch;
+  		   
 	for( unsigned z = 0 ; z<gRootFilesList.size(); z++)	{
-					  
+		 
 		printf(" Reading file : %s\t--\t", gRootFilesList.at(z));
 		string inputname = gRootFilesList.at(z);
 		string outputname = inputname;	
 		size_t pos = inputname.find(".root");
 		outputname.insert(pos, "_data");	
 		printf("Output file : %s\n", outputname.c_str());
-
+		
+		//Set Benchmark (measure the processing time)
+		stopwatch.Start(); 
+		
 		// point to the input and output files
 		gInputFile = new TFile(inputname.c_str());
 		gOutputFile = new TFile(outputname.c_str(),"RECREATE");
@@ -136,7 +135,7 @@ int main(int argc, char **argv) {
 		//Iterate through events
 		Int_t nentries = (Int_t)gOldTree->GetEntries();
 		cout << "Tree contains " << nentries <<endl;
-		//nentries = 1000000 ; // experimenting value
+		nentries = 1000000 ; // experimenting value
 
 		// progress bar variables
 		char BarString[30] = "[                     ] <( )>";
@@ -208,9 +207,9 @@ int main(int argc, char **argv) {
 			gNewTree->Fill();	// fill the tree	
 			gMielData->Clear();
 			gMielEvent->Clear();
-			if (j % 100000 == 0 ) gNewTree->AutoSave("FlushBaskets");  
+			if (j % 50000 == 0 ) gNewTree->AutoSave("FlushBaskets");  
 			}
-		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events)  Done! \n",inputname.c_str(), BarString, j,GoodMiel);
+		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%])  Done! \n",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/j);
 		
 		// Write the new trees in seperate files 
 		gNewTree->Write();	// fill the tree	
@@ -220,6 +219,13 @@ int main(int argc, char **argv) {
 		gNewTree=NULL;
 		gOldTree=NULL;		
 		gOutputFile=NULL;
+		
+		stopwatch.Stop(); 
+   		cout << " End of the current file : " << inputname << "\n";
+   		cout << " Cpu  time " << " =\t" << (int) stopwatch.CpuTime()/60 << "' " <<  ( (int) stopwatch.CpuTime())%60<< "\"" <<endl;
+		cout << " Real time " << " =\t" << (int) stopwatch.RealTime()/60 << "' "<<  ( (int) stopwatch.RealTime())%60<< "\"" <<endl;
+		stopwatch.Reset();
+		
 		}//end of input files
 
 	}//end 
