@@ -78,7 +78,6 @@ void TMielData::Print() {
 	}
 	cout << "\n-------------------------\n" ; 
 
-
 	cout << "Miel Gamma : " << fMielAptherix <<"\n" ;
 	cout << "Miel HallProbe : " << fMielHallProbe <<"\n" ;
 	cout << "Miel VcontE : " << fMielVcontE <<"\n" ;

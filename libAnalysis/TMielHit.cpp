@@ -44,14 +44,14 @@ void TMielHit::Clear() {
 }
 
 
-void TMielHit::SetSegment(UShort_t Seg)	{
+void TMielHit::SetSegment(UShort_t Seg)	{ //DCP segments{0,1,..5} => Analysed segments{1,2,..6} 
 fSegment=(Seg);	 
 CalculatePosition(); 
 } 
 	       
 void TMielHit::CalculatePosition()	{	
 fPosition.SetXYZ(1,1,distance_to_target) ;	
-fPosition.SetPhi( (fSegment + 0.5)*phi_pitch ) ; 
+fPosition.SetPhi( (fSegment - 0.5)*phi_pitch ) ; 
 fPosition.SetPerp(mid_radius) ;
 } 	
 		
