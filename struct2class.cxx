@@ -67,8 +67,8 @@ int    gCycle=0;
 vector < vector<double> > gECalibrationCoeff;
 std::map<int, vector <double> > gTCalibrationCoeff;
 
-//default value 
-bool gkData = true ; 
+//boolean for mode selection
+bool gkData = false ; 
 bool gkPairMode = false ; 
 bool gkClusterMode = false  ;
 bool gkPairSumMode = false  ; // not implemented in TMielEvent yet 
@@ -625,12 +625,6 @@ return '#' ;
 
 
 void ParsePhysicsOption(){
-
-//default
- gkData = false ; 
- gkPairMode = false ; 
- gkClusterMode = false  ;
- gkPairSumMode = false  ; // not implemented in TMielEvent yet 
 
 cout << "\n\tSelected analysis mode : " << endl ; 
 cout << "\t------------------------" << endl ;
