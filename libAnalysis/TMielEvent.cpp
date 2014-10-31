@@ -14,10 +14,9 @@
  *                                                                           *
  *****************************************************************************/
 
-
 //c++
 #include <iostream>
-using namespace std;
+#include <algorithm>    // std::sort
 
 // User classes
 #include "TMielEvent.h"
@@ -36,13 +35,20 @@ TMielEvent::~TMielEvent() {
 
 
 void TMielEvent::Clear() {
-	
-	fHits.clear();
-	fCluster.clear(); 
-	fSum.Clear(); 	
-	fPattern =  0 ; 
-}
 
+	fHits.clear();
+	fCluster.clear();
+	fPair.clear(); 	 
+	
+	fSum.Clear();
+	//fPairSum.Clear(); 
+		 		
+	fPattern =  0 ;
+	fPairRatioE1E2 = 0; 
+	fRatioE1E2 = 0 ; 
+	fConflict = 0 ;
+	 
+}
 
 
 void TMielEvent::Print() {
@@ -51,6 +57,9 @@ void TMielEvent::Print() {
 	cout << "==========================\n" ;
 	
 	cout << " Hit pattern : " << fPattern  << endl ; 
+	cout << " Energy ratio for the 2 top energies : " << fRatioE1E2  << endl ; 
+	cout << " Energy ratio for the 2 top energies in pair mode : " << fPairRatioE1E2  << endl ; 
+	cout << " Conflict in adding the energies  : " << fConflict  << endl ; 	
 	
 	cout << "\n-----------S I N G L E S-------------\n" ; 
 	for (unsigned i = 0 ; i < fHits.size() ; i++ ) {
@@ -60,11 +69,19 @@ void TMielEvent::Print() {
 	cout << "\n-----------S U M -------------\n" ; 
 	fSum.Print();
 	
-	cout << "\n-----------C L U S T E R--------------\n" ; 
+	cout << "\n-----------C L U S T E R-------\n" ; 
 	for (unsigned i = 0 ; i < fCluster.size() ; i++ ) {
 	fCluster.at(i).Print();
 	}
-
+	
+	cout << "\n-----------P A I R-------------\n" ; 
+	for (unsigned i = 0 ; i < fPair.size() ; i++ ) {
+	fPair.at(i).Print();
+	}
+	
+	//cout << "\n-----------P A I R  S U M------\n" ; 
+	//fPairSum.Print();
+	
 }
 
 
@@ -173,9 +190,9 @@ Double_t epsilon= 1E-3 ; // small length to compare magnitudes, if magnitude < e
 
 }
 
-TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hits 
+TMielHit  TMielEvent::AddHits( const vector<TMielHit> &hits) { // Add a vector of hits 
 
-	TMielHit* aMielHit = new TMielHit(); 
+	TMielHit aMielHit; 
 
 	//calculate full energy 
 	double   full = 0  ;
@@ -184,19 +201,27 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 		full = full + hits.at(i).GetEnergy();
 		if (hits.at(index).GetEnergy() < hits.at(i).GetEnergy() ) index=i ;
 		}
-	aMielHit->SetEnergy(full) ; 
+	aMielHit.SetEnergy(full) ; 
 	
 	
-	//calculate segment 
-	unsigned short segment = 0 ; 
+	//calculate segment	
+	//get the segments queue 
+	vector<unsigned short> segment ;
+	unsigned short finalsegment = 0 ; 
 	for (unsigned i = 0 ; i < hits.size() ; i++ ) {
-		segment = segment*10 + (hits.at(i).GetSegment() + 1);  // e.g if segment 1+2 => Segment = 12
+		segment.push_back(hits.at(i).GetSegment()); 
 		}
-	aMielHit->SetSegment(segment) ; 
-	
-	
+	// sort it	
+	sort(segment.begin(), segment.end());	
+	// store it
+	for (unsigned i = 0 ; i < segment.size() ; i++ ) {
+		finalsegment = 10*finalsegment + (segment.at(i) );  // segments{1,2,..6}  e.g if segment 1+4  => Final Segment = (10*0) + (1) = 1 ( 1st iteration ) => (10*1) + (4) = 14 
+		}
+	aMielHit.SetSegment(finalsegment) ; 
+
+
 	//calculate time 
-	aMielHit->SetTime(hits.at(index).GetTime());
+	aMielHit.SetTime(hits.at(index).GetTime());
 
 
 	//calculate position
@@ -206,9 +231,9 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 		phi = phi + ( hits.at(i).GetPosition().Phi() * (hits.at(i).GetEnergy()/full) );  // weighted position
 		}
 	position.SetPhi(phi);  
-	aMielHit->SetPosition(position);
+	aMielHit.SetPosition(position);
 	
-	return *aMielHit ; 
+	return aMielHit ; 
 }
 
 
@@ -216,11 +241,8 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 	//Add-Back schemes 
 		
  void TMielEvent::SumHits(){  // Calorimeter mode, sums all the hits and returns a singleton vector
-
-	fSum = Add(fHits) ;
-	 
+	fSum = AddHits(fHits) ;
 	}
-	
 	
 	
  void TMielEvent::ClusterHits() {  // Cluster mode, only those hits with touching segments are summed
@@ -235,7 +257,7 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 	if (fHits.size()==2){
 		// test if the segments are touching
 		 if ( fPattern==110000 ) {
-				{ vector<TMielHit> hitvec ; hitvec.push_back(fSum) ; fCluster = hitvec ;}
+				vector<TMielHit> hitvec ; hitvec.push_back(fSum) ; fCluster = hitvec ;
 				} 
 		 else fCluster = fHits;
 		}
@@ -252,12 +274,12 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 		TMielHit A = fHits.at(0) ; 
 		TMielHit B = fHits.at(1) ;
 		TMielHit C = fHits.at(2) ;
-
+			
 		vector<TMielHit>  aHitCluster1 ;
 		vector<TMielHit>  aHitCluster2 ; 
 	    
 	    aHitCluster1.push_back(A) ; 
-		if (Contact(A,B)) {
+		if (PositionAdjacent(A.GetPosition().XYvector(),B.GetPosition().XYvector())) {
 			aHitCluster1.push_back(B) ; 
 			aHitCluster2.push_back(C) ; 
 		}
@@ -265,13 +287,12 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 			aHitCluster1.push_back(C);
 			aHitCluster2.push_back(B);
 		}
-		
+
 		//build the new hits and return it
 		 vector<TMielHit> hitvec ; 
-		 hitvec.push_back(Add(aHitCluster1)) ;
-		 hitvec.push_back(Add(aHitCluster1)) ;
+		 hitvec.push_back(AddHits(aHitCluster1)) ;
+		 hitvec.push_back(AddHits(aHitCluster2)) ;
 		 fCluster = hitvec ; 
-		 //fCluster { Add(aHitCluster1), Add(aHitCluster2) }; // Add hits returns a TMielHit*	
 	    }	 	  	
 	}
 
@@ -291,12 +312,12 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 				aHitCluster1.push_back(A) ;
 				 
 				if (fPattern==110110){
-					if (Contact(A,B)){			
+					if (PositionAdjacent( A.GetPosition().XYvector() , B.GetPosition().XYvector() )){			
 					aHitCluster1.push_back(B) ; // Add hits returns a TMielHit*
 					aHitCluster2.push_back(C) ;
 					aHitCluster2.push_back(D) ;
 					}
-					else if (Contact(A,C)){
+					else if (PositionAdjacent( A.GetPosition().XYvector() , C.GetPosition().XYvector() )){
 						aHitCluster1.push_back(C) ; // Add hits returns a TMielHit*
 						aHitCluster2.push_back(B) ;
 						aHitCluster2.push_back(D) ;
@@ -309,8 +330,8 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 						
 					//build the new hits and return it
 					 vector<TMielHit> hitvec ; 
-					 hitvec.push_back(Add(aHitCluster1)) ;
-					 hitvec.push_back(Add(aHitCluster1)) ;
+					 hitvec.push_back(AddHits(aHitCluster1)) ;
+					 hitvec.push_back(AddHits(aHitCluster2)) ;
 					 fCluster = hitvec ; 
 				}
 		
@@ -335,8 +356,8 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 		
 					//build the new hits and return it
 					 vector<TMielHit> hitvec ; 
-					 hitvec.push_back(Add(aHitCluster1)) ;
-					 hitvec.push_back(Add(aHitCluster1)) ;
+					 hitvec.push_back(AddHits(aHitCluster1)) ;
+					 hitvec.push_back(AddHits(aHitCluster2)) ;
 					 fCluster = hitvec ; 
 				}// end of case 111010 
 			} // end of non-trivial case of 4 multiplicity
@@ -344,27 +365,163 @@ TMielHit  TMielEvent::Add( const vector<TMielHit> &hits) { // Add a vector of hi
 
 }
 	
-bool TMielEvent::Contact(const TMielHit &SegmentA, const TMielHit &SegmentB){
 	
-	TVector3 A = SegmentA.GetPosition() ; 
-	TVector3 B = SegmentB.GetPosition() ;
-	// reduce to polar coordinates only
-	 A.SetXYZ(A.X(),A.Y(),0) ; 
-	 B.SetXYZ(B.X(),B.Y(),0) ;
-	 TVector3 Sum = A + B ; 
-	 
-	 if (Sum.Mag() > 1.5*A.Mag() ) return true ;
-	 else  return false;
+	
+	
+ void TMielEvent::PairHits() {  // Pair mode, hits are summed only if they pass the Adjacent position/time tests, all other are discraded
+ 
+ // if one segment is hit skip event
+ if ( fHits.size() <= 1) {
+	 fPair = fHits ;
+	 fRatioE1E2 = 0 ; 
+	 fPairRatioE1E2 = 0 ; 
+	 fConflict = 0 ; 
+	 return ; 
+	 }
+ 
+ // Copy fHits to hits
+ vector<TMielHit> hits = fHits ; 
+ vector<TMielHit> Queue1 ; 
+ vector<TMielHit> Queue2 ; 
+ 
+ // re-arrange the fHits vector according to the energy
+ // select the top 2 energies segments, Major-1 and Major-2 and create the pool (a vector) for the other segments
+ unsigned index1 = 0 ; // Major Energy 1  
+ unsigned index2 = 0 ; // Major Energy 1 
+ 
+ 	
+ for (unsigned i = 0 ; i < hits.size() ; i++ ) {
+ 	if (hits.at(i).GetEnergy() > hits.at(index1).GetEnergy()) index1 = i ;  	
+ 	}
+ 	Queue1.push_back(hits.at(index1)) ; 
+ 	hits.erase(hits.begin()+(index1));
+ 		 	
+ for (unsigned i = 0 ; i < hits.size() ; i++ ) {
+ 	if (hits.at(i).GetEnergy() > hits.at(index2).GetEnergy()) index2 = i ;  	
+ 	}
+ 	Queue2.push_back(hits.at(index2)) ;  
+ 	hits.erase(hits.begin()+(index2));
+ 	 	 	
+ // calculate the energy ratio
+ fRatioE1E2 = Queue2.at(0).GetEnergy() / Queue1.at(0).GetEnergy();	
+   	
+ if (fHits.size() == 2 ) {
+	 fPair.push_back(Queue1.at(0)) ;
+	 fPair.push_back(Queue2.at(0)) ;
+	 fPairRatioE1E2 = fRatioE1E2; 
+	 fConflict = 0 ; 
+	 return ; 
+	 }
+	
+ //create the decision variable 
+ int decision = 0  ;
+ bool SolveOnce = 1  ;
+ float EnergyQ1 = Queue1.at(0).GetEnergy()  ;
+ float EnergyQ2 = Queue2.at(0).GetEnergy()  ;
+    
+ // iterate on the pool
+  for (unsigned i = 0 ; i < hits.size() ; i++ ) {
+  
+	 //Major 1 
+	 	if ( PositionAdjacent( Queue1.at(0).GetPosition().XYvector(), hits.at(i).GetPosition().XYvector() ) ) { // position test Major-1, 	if yes proceed for time 
+	 		if ( TimeAdjacent( Queue1.at(0).GetTime(), hits.at(i).GetTime()) ) { // time test Major-1
+		 		
+		 		EnergyQ1 = EnergyQ1 + hits.at(i).GetEnergy();
+		 		decision = 1; 
+		 		}
+	 		}
+	//Major 2  	
+	 	if ( PositionAdjacent( Queue2.at(0).GetPosition().XYvector(), hits.at(i).GetPosition().XYvector() ) ) { // position test Major-2, 	if yes proceed for time 
+	 		if ( TimeAdjacent( Queue2.at(0).GetTime(), hits.at(i).GetTime()) ) { // time test Major-2
+	 			
+	 			EnergyQ2 = EnergyQ2 + hits.at(i).GetEnergy();
+	 			if (decision == 1)  fConflict = 1 ;  // if decision vector is == 1, Flag a conflict
+		 		else decision = 2 ;     
+		 		}
+	 		}
+
+	// To solve the conflict give the debated energy to the lower energy Q  // N.B. It is physically impossible to have a two conflicts in 6 segments detector 		
+		if (SolveOnce && fConflict) {
+				SolveOnce = false; 
+				if(EnergyQ1 < EnergyQ2) decision = 1 ;
+				else decision = 2 ;
+				}
+		  
+	//fill up the energy according to decision  	
+		if (decision == 1 ) Queue1.push_back(hits.at(i)) ;
+			else if (decision == 2 ) Queue2.push_back(hits.at(i)) ;
+			//else this segment is discarded
+			
+			//Reset decision
+			decision = 0;		
+			}
+ 	
+//  add up the energies  
+TMielHit Major1 = AddHits(Queue1) ; 
+TMielHit Major2 = AddHits(Queue2) ; 
+
+ 	  	
+// calculate the new energy ratio
+fPairRatioE1E2 = TMath::Min(Major2.GetEnergy(),Major1.GetEnergy()) / TMath::Max(Major2.GetEnergy(),Major1.GetEnergy()) ; // min/max
+
+   	
+ // Fill fPair   
+ vector<TMielHit> hitvec ; 
+ hitvec.push_back(Major1) ;
+ hitvec.push_back(Major2) ;
+ fPair = hitvec ;	
+
+ return ; 	   
+ 
+ }
+ 
+/*
+void TMielEvent::PairSumHits(){  // Calorimeter mode for pairs, sums all the hits from fPair and returns a singleton vector
+
+cout << " PairSumHits : Hello  " << endl ;
+getchar() ; 
+
+	fPairSum = AddHits(fPair) ;  
+	}
+*/
+ 
+bool TMielEvent::PositionAdjacent(const TVector2& A, const TVector2& B){ // reduced to polar coordinates only
+
+	TVector2 Sum = A + B ; 
+
+	 if (Sum.Mod() > 1.5*A.Mod() )
+	 	return true ;
+	 else 
+	 	return false;
 	
 }
+
+
+bool TMielEvent::TimeAdjacent(float timeA, float timeB){
+	 
+	 if ( TMath::Abs(timeA - timeB) <  gTimeThreshold ) {
+	 return true ;
+	 }
+	 else  return false;	
+}
+
+
+
+//void TMielEvent::BuildAddBack(){
+//BuildAddBack(true /*cluster*/, false /*pair*/, false /*pairsum*/); //default 
+//}
+
 	
-void TMielEvent::BuildAddBack(){
+void TMielEvent::BuildAddBack(bool cluster, bool pair, bool pairsum){
 	
 	//order is strict 
-	SumHits() ; 
-	ClusterHits() ;
+	SumHits() ;  // always true 
+	 				
+	if (cluster) 	{ ClusterHits(); };
+	if (pair) 		{ PairHits() ; }
 	
 	//other Add-back schemes CALLS goes here 
+	//if (pairSum) PairSumHits() ; 
 	//...
 }
 	
@@ -374,7 +531,8 @@ void TMielEvent::SetMielData(TMielData* data){ // Take the elecron data from TMi
 	TMielHit aMielHit ; 
 	unsigned mult = data->GetMultiplicity() ;
 	for (unsigned i = 0 ; i < mult ; i++ ) {
-		unsigned segment = data->GetSegment(i); 
+		
+		unsigned segment = data->GetSegment(i) + 1 ; //DCP segments{0,1,..5} => Analysed segments{1,2,..6} 
 		double    energy = data->GetEnergy(i);
 		int       time   = (int) data->GetTime(i);
 		

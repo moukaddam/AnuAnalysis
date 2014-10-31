@@ -1,8 +1,8 @@
 // edited to include monitor - 29/09/09
 // edited the argument passing to the function LoadDCPFile(), to handle a run-time error. [Mhd: moukaddam@triumf.ca : 25/10/14]
 // edited add a DEBUG variable. [Mhd: moukaddam@triumf.ca : 25/10/14]
+// edited add an ADC configuration file. [Mhd: moukaddam@triumf.ca : 27/10/14]
 // #########################################################################################3
-// Compillation in /home/tibor/12C/DcptoROOT folder
 //   (a) edit libDAQ.cxx if needed
 //   (b) run root
 //   (c) compilation in ROOT: .L libDAQ/libDAQ.cxx++
@@ -10,16 +10,19 @@
 //   (e) provide filename when prompted
 
 #include <iostream> // MHD : 25 October 2014, remove ".h" 
+#include <fstream> // MHD : 27 October 2014, add file stream library
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 
+using namespace std ; // MHD : 27 October 2014, add name space
+
 #define DEBUG 0
 
 void dcp2root(){
   //  PrepareConfig();
-  //  PrepareTree();
+  //  PrepareTree(); 
 
   // Set name for used input and output files
   cout <<"========================================"<<endl;
@@ -33,8 +36,15 @@ void dcp2root(){
   outfileName.assign(infileName);
   outfileName.append(".root");
 
+ string DaqConfigName="";
+  cout <<"STAGE 2: Enter DAQ configuration (return for default <./daq.config> ): \n";
+  getline( cin, DaqConfigName);
+  if (DaqConfigName=="") DaqConfigName="daq.config"; //default 
+  cout << DaqConfigName << endl ; 
+  
+  
   TFile *file = new TFile(outfileName.c_str(),"recreate");
-  LoadDCPFile(infileName);
+  LoadDCPFile(infileName, DaqConfigName );
   file->Write();
 
 if (DEBUG) cout << " End of dcp2root " << endl;
@@ -42,7 +52,7 @@ if (DEBUG) cout << " End of dcp2root " << endl;
 
 // Creates the TDAQConfig object which specifies how the raw DAQ
 // channels should be loaded into the tree.
-TDAQConfig *PrepareConfig(void){
+TDAQConfig *PrepareConfig(string DaqConfig){
 
   // Create the object.
   TDAQConfig *RetVal = new TDAQConfig();
@@ -71,41 +81,23 @@ TDAQConfig *PrepareConfig(void){
   //CurBranch->GetADCs()->Add(new TDAQADC(0, 1, "E", "Energy", 2048));
   
   // Pair spectrometer runs: Jul-2013
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 0, "Miel1E",    "Miel1E", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 1, "Miel2E",    "Miel2E", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 2, "Miel3E",    "Miel3E", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 3, "Miel4E",    "Miel4E", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 4, "Miel5E",    "Miel5E", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(0, 5, "Miel6E",    "Miel6E", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(1, 0, "Aptherix",  "Aptherix", 8192));
-   CurBranch->GetADCs()->Add(new TDAQADC(1, 1, "HallProbe", "HallProbe", 2048));
-   CurBranch->GetADCs()->Add(new TDAQADC(1, 2, "VcontE",    "VcontE", 2048));
-   CurBranch->GetADCs()->Add(new TDAQADC(1, 3, "VcontG",    "VcontG", 2048));
-   CurBranch->GetADCs()->Add(new TDAQADC(1, 4, "Chopper",    "Chopper", 8192));
+  // MHD : 27 October 2014, adding ADC configuration file
+  cout << " Daq configuration is read from : " << DaqConfig << endl;
+  ifstream daqconfig ; 
+  daqconfig.open(DaqConfig.c_str());
+  int Interface = 0 ; 
+  int AdcNumber = 0 ;
+  string LeafName = "LeafName";
+  string LeafDescription = "LeafDescription";
+  int NumberOfChannel = 8192;
+  
+  cout << "  |  "<<"Interface"  << "  |  "<< "AdcNumber"  << "  |  "<< "LeafName"  << "  |  "<< "LeafDescription"  << "  |  "<< "NumberOfChannel"<<"\n" ;    
+  while (daqconfig >> Interface) {
+  	daqconfig >> AdcNumber >> LeafName >> LeafDescription >> NumberOfChannel ;
+  	cout <<" " << "  |  " << Interface  << "  |  " << AdcNumber   << "  |  "<< LeafName  << "  |  "<< LeafDescription  << "  |  "<< NumberOfChannel<<"\n" ;   
+    CurBranch->GetADCs()->Add(new TDAQADC( Interface , AdcNumber , LeafName.c_str() , LeafDescription.c_str() , NumberOfChannel ) ); 
+    }
 
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 0, "MielT1T2", "MielT1-T2", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 1, "MielT1T3", "MielT1-T3", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 2, "MielT1T4", "MielT1-T4", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 3, "MielT1T5", "MielT1-T5", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 4, "MielT1T6", "MielT1-T6", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 5, "MielT2T3", "MielT2-T3", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 6, "MielT2T4", "MielT2-T4", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 7, "MielT2T5", "MielT2-T5", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 8, "MielT2T6", "MielT2-T6", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 9, "MielT3T4", "MielT3-T4", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 10, "MielT3T5", "MielT3-T5", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 11, "MielT3T6", "MielT3-T6", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 12, "MielT4T5", "MielT4-T5", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 13, "MielT4T6", "MielT4-T6", 8192));
-  CurBranch->GetADCs()->Add(new TDAQADC(11, 14, "MielT5T6", "MielT5-T6", 8192));
-  /*
-   CurBranch->GetADCs()->Add(new TDAQADC(5, 0, "Miel1T", "Miel1T", 4096));
-   CurBranch->GetADCs()->Add(new TDAQADC(5, 1, "Miel2T", "Miel2T", 4096));
-   CurBranch->GetADCs()->Add(new TDAQADC(5, 2, "Miel3T", "Miel3T", 4096));
-   CurBranch->GetADCs()->Add(new TDAQADC(5, 3, "Miel4T", "Miel4T", 4096));
-   CurBranch->GetADCs()->Add(new TDAQADC(5, 4, "Miel5T", "Miel5T", 4096));
-   CurBranch->GetADCs()->Add(new TDAQADC(5, 5, "Miel6T", "Miel6T", 4096));
-  */
   // This now adds the branch to the DAQConfig object.
   RetVal->GetBranches()->Add(CurBranch);
 
@@ -161,10 +153,10 @@ TTree *PrepareTree(void)
 }
 
 // Creates a new TTree object and loads a DCP file into the tree.
-void LoadDCPFile(string Filename)
+void LoadDCPFile(string Filename, string DaqConfigname)
 {
   // Like the function above, we create the configuration and set up the tree.
-  TDAQConfig *DAQConfig = PrepareConfig();
+  TDAQConfig *DAQConfig = PrepareConfig(DaqConfigname);
 
   TTree *MielTree = new TTree("MielTree", "Miel event tree");
   DAQConfig->InitTree(MielTree);

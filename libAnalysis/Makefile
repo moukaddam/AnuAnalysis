@@ -68,5 +68,5 @@ distclean:
 # Manage dependancies
 #-------------------------
 TMielData.o:		TMielData.cpp		TMielData.h
-TMielHit.o:		TMielHit.cpp		TMielHit.h
+TMielHit.o:			TMielHit.cpp		TMielHit.h
 TMielEvent.o:		TMielEvent.cpp		TMielEvent.h     TMielHit.h
