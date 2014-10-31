@@ -257,7 +257,7 @@ TMielHit  TMielEvent::AddHits( const vector<TMielHit> &hits) { // Add a vector o
 	if (fHits.size()==2){
 		// test if the segments are touching
 		 if ( fPattern==110000 ) {
-				{ vector<TMielHit> hitvec ; hitvec.push_back(fSum) ; fCluster = hitvec ;}
+				vector<TMielHit> hitvec ; hitvec.push_back(fSum) ; fCluster = hitvec ;
 				} 
 		 else fCluster = fHits;
 		}
@@ -274,12 +274,12 @@ TMielHit  TMielEvent::AddHits( const vector<TMielHit> &hits) { // Add a vector o
 		TMielHit A = fHits.at(0) ; 
 		TMielHit B = fHits.at(1) ;
 		TMielHit C = fHits.at(2) ;
-
+			
 		vector<TMielHit>  aHitCluster1 ;
 		vector<TMielHit>  aHitCluster2 ; 
 	    
 	    aHitCluster1.push_back(A) ; 
-		if (PositionAdjacent(A.GetPosition(),B.GetPosition())) {
+		if (PositionAdjacent(A.GetPosition().XYvector(),B.GetPosition().XYvector())) {
 			aHitCluster1.push_back(B) ; 
 			aHitCluster2.push_back(C) ; 
 		}
@@ -287,7 +287,7 @@ TMielHit  TMielEvent::AddHits( const vector<TMielHit> &hits) { // Add a vector o
 			aHitCluster1.push_back(C);
 			aHitCluster2.push_back(B);
 		}
-		
+
 		//build the new hits and return it
 		 vector<TMielHit> hitvec ; 
 		 hitvec.push_back(AddHits(aHitCluster1)) ;
@@ -312,12 +312,12 @@ TMielHit  TMielEvent::AddHits( const vector<TMielHit> &hits) { // Add a vector o
 				aHitCluster1.push_back(A) ;
 				 
 				if (fPattern==110110){
-					if (PositionAdjacent(A.GetPosition(),B.GetPosition())){			
+					if (PositionAdjacent( A.GetPosition().XYvector() , B.GetPosition().XYvector() )){			
 					aHitCluster1.push_back(B) ; // Add hits returns a TMielHit*
 					aHitCluster2.push_back(C) ;
 					aHitCluster2.push_back(D) ;
 					}
-					else if (PositionAdjacent(A.GetPosition(),C.GetPosition())){
+					else if (PositionAdjacent( A.GetPosition().XYvector() , C.GetPosition().XYvector() )){
 						aHitCluster1.push_back(C) ; // Add hits returns a TMielHit*
 						aHitCluster2.push_back(B) ;
 						aHitCluster2.push_back(D) ;
@@ -423,16 +423,16 @@ TMielHit  TMielEvent::AddHits( const vector<TMielHit> &hits) { // Add a vector o
   for (unsigned i = 0 ; i < hits.size() ; i++ ) {
   
 	 //Major 1 
-	 	if ( PositionAdjacent(Queue1.at(0).GetPosition(), hits.at(i).GetPosition()) ) { // position test Major-1, 	if yes proceed for time 
-	 		if ( TimeAdjacent(Queue1.at(0).GetTime(), hits.at(i).GetTime()) ) { // time test Major-1
+	 	if ( PositionAdjacent( Queue1.at(0).GetPosition().XYvector(), hits.at(i).GetPosition().XYvector() ) ) { // position test Major-1, 	if yes proceed for time 
+	 		if ( TimeAdjacent( Queue1.at(0).GetTime(), hits.at(i).GetTime()) ) { // time test Major-1
 		 		
 		 		EnergyQ1 = EnergyQ1 + hits.at(i).GetEnergy();
 		 		decision = 1; 
 		 		}
 	 		}
 	//Major 2  	
-	 	if ( PositionAdjacent(Queue2.at(0).GetPosition(), hits.at(i).GetPosition()) ) { // position test Major-2, 	if yes proceed for time 
-	 		if ( TimeAdjacent(Queue2.at(0).GetTime(), hits.at(i).GetTime()) ) { // time test Major-2
+	 	if ( PositionAdjacent( Queue2.at(0).GetPosition().XYvector(), hits.at(i).GetPosition().XYvector() ) ) { // position test Major-2, 	if yes proceed for time 
+	 		if ( TimeAdjacent( Queue2.at(0).GetTime(), hits.at(i).GetTime()) ) { // time test Major-2
 	 			
 	 			EnergyQ2 = EnergyQ2 + hits.at(i).GetEnergy();
 	 			if (decision == 1)  fConflict = 1 ;  // if decision vector is == 1, Flag a conflict
@@ -462,7 +462,7 @@ TMielHit Major2 = AddHits(Queue2) ;
 
  	  	
 // calculate the new energy ratio
-fPairRatioE1E2 = Major2.GetEnergy() / Major1.GetEnergy();
+fPairRatioE1E2 = TMath::Min(Major2.GetEnergy(),Major1.GetEnergy()) / TMath::Max(Major2.GetEnergy(),Major1.GetEnergy()) ; // min/max
 
    	
  // Fill fPair   
@@ -485,17 +485,14 @@ getchar() ;
 	}
 */
  
-bool TMielEvent::PositionAdjacent(TVector3 A, TVector3 B){
-	
-	// reduce to polar coordinates only
-	 A.SetXYZ(A.X(),A.Y(),0) ; 
-	 B.SetXYZ(B.X(),B.Y(),0) ;
-	 TVector3 Sum = A + B ; 
-			
-	 if (Sum.Mag() > 1.5*A.Mag() ) {
-	 return true ;
-	 }
-	 else  return false;
+bool TMielEvent::PositionAdjacent(const TVector2& A, const TVector2& B){ // reduced to polar coordinates only
+
+	TVector2 Sum = A + B ; 
+
+	 if (Sum.Mod() > 1.5*A.Mod() )
+	 	return true ;
+	 else 
+	 	return false;
 	
 }
 

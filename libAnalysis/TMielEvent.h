@@ -50,7 +50,7 @@ class TMielEvent : public TObject {
 	void		Clear();
 	void		Print();
 	bool    	TimeAdjacent(float timeA, float timeB); // test if A an B are neighbouring segments 
-	bool    	PositionAdjacent(TVector3 A, TVector3 B); // test if A an B are neighbouring segments
+	bool    	PositionAdjacent(const TVector2& A, const TVector2& B); // test if A an B are neighbouring segments
 	void    	CalculatePattern() ;
 	void		BuildAddBack();	
 	
