@@ -1,8 +1,8 @@
 // #########################################################################################
 // compile only MielData: \
- g++ struct2class.cxx libAnalysis/libMielData.so  -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas
+ g++ struct2class.cxx libAnalysis/libMielData.so  -IlibAnalysis --std=c++0x -o AnalyseAnu.exe -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas
 // compile all : \
- g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so  libAnalysis/libMielEvent.so -IlibAnalysis --std=c++0x -o newstruct2class -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas 
+ g++ struct2class.cxx libAnalysis/libMielData.so libAnalysis/libMielHit.so  libAnalysis/libMielEvent.so -IlibAnalysis --std=c++0x -o AnalyseAnu.exe -O2 `root-config --cflags --libs`   -lTreePlayer -lgsl -lgslcblas 
 // #########################################################################################
 
 //c++
@@ -13,6 +13,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <map>
 #include <cmath>
 using namespace std;
 
@@ -45,25 +46,30 @@ struct Miel_st {
  } gMiel_st; // old tree , struct based
 
 enum IDENTITY {
- Miel1E,   Miel2E,  Miel3E,  Miel4E,  Miel5E,  Miel6E,  
- Aptherix,  HallProbe,  VcontE,  VcontG,  Chopper,
+ Miel1E,   Miel2E,  Miel3E,  Miel4E,  Miel5E,  Miel6E,  // {0,1...5}
+ Aptherix,  HallProbe,  VcontE,  VcontG,  Chopper,		// {0,1...5}
  MielT1T2,  MielT1T3,  MielT1T4,  MielT1T5,  MielT1T6, 
             MielT2T3,  MielT2T4,  MielT2T5,  MielT2T6,
                        MielT3T4,  MielT3T5,  MielT3T6,
                                   MielT4T5,  MielT4T6,
                                              MielT5T6};
 
-enum FileOption {NONE, ROOTFILE, CALFILE} ; 
+enum FileOption {NONE, ROOTFILE, ECALFILE, TCALFILE, PHYSICS, HIST} ; 
  vector <char*> gRootFilesList;
- vector <char*> gCalibrationFilesList; 
- 
- 
+ vector <char*> gECalibrationFilesList; 
+ vector <char*> gTCalibrationFilesList; 
+ vector <char*> gPhysicsOptionList;
+ vector <char*> gHistFileName; // only the last filename will be considered
+
 //Other variables
 int    gCycle=0;
-vector < vector<double> > gCalibration;
-vector <double> gTimeCalibration;
+vector < vector<double> > gECalibrationCoeff;
+//vector <double> gTCalibration[6][6]; // 6 * 6 segments // only half of it will be used 
+std::map<int, vector <double> > gTCalibrationCoeff;
+
 vector < vector<int> > gTimeCombinations;
-bool gEnergyCalibrationRead;
+bool 	gECalibrationRead=false;
+bool 	gTCalibrationRead=false;;
 
 //Declare functions
 int GetTimeDifference(int SEG, int seg);
@@ -74,6 +80,7 @@ float CalibrateMielTime(int SEGMENT, int segment, int time);
 void PrintBasicMiel();
 void ParseInputLine(int argc, char **argv);
 char NextCycle() ; 
+void InputMessage(); 
 
 // #########################################################################################
 //                                Main function
@@ -85,9 +92,6 @@ int main(int argc, char **argv) {
 	// parse input line  
 	ParseInputLine(argc,argv) ; 
 	
-	//Data structures
-	TMielData* gMielData; // new tree, data vector based branch, data organised, energy calibrated
-	TMielEvent* gMielEvent; 		  // new tree, analysis branch, hitpattern, add-back
 	//Data Files
 	TFile *gInputFile; 
 	TFile *gOutputFile;
@@ -95,9 +99,13 @@ int main(int argc, char **argv) {
 	TTree *gNewTree ;
 	TTree *gOldTree ;
 
+	//Data structures
+	TMielData* gMielData; // new tree, data vector based branch, data organised, energy calibrated
+	TMielEvent* gMielEvent; 		  // new tree, analysis branch, hitpattern, add-back
+	
 	// Analyse root files  
 	bool GoodEvent=false; 
-	gEnergyCalibrationRead=false;
+
 	gMielData 	= new TMielData(); 	// organise data
 	gMielEvent 	= new TMielEvent();     // analyse data
     
@@ -108,7 +116,7 @@ int main(int argc, char **argv) {
 		 
 		printf(" Reading file : %s\t--\t", gRootFilesList.at(z));
 		string inputname = gRootFilesList.at(z);
-		string outputname = inputname;	
+		string outputname = inputname;
 		size_t pos = inputname.find(".root");
 		outputname.insert(pos, "_data");	
 		printf("Output file : %s\n", outputname.c_str());
@@ -124,7 +132,6 @@ int main(int argc, char **argv) {
 		gInputFile->ls();
 
 		gOldTree = (TTree*)gInputFile->Get("MielTree");
-		//gOldTree->SetMakeClass(1); 
 		gOldTree->SetBranchAddress("Miel",&gMiel_st);
 
 		//point to the new tree and set the addresses
@@ -135,30 +142,30 @@ int main(int argc, char **argv) {
 		//Iterate through events
 		Int_t nentries = (Int_t)gOldTree->GetEntries();
 		cout << "Tree contains " << nentries <<endl;
-		nentries = 1000000 ; // experimenting value
+		nentries = 100000 ; // experimenting value
 
 		// progress bar variables
+		int GoodMiel = 0 ;
+    	int j = 0 ; 
 		char BarString[30] = "[                     ] <( )>";
-		int  Loop = 0 ; 
-		printf("Processing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, 0,0);
+		int  Loop = 0 ;
+		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries); 
 		fflush(stdout);
   
-    	int GoodMiel = 0 ;
-    	int j = 0 ; 
 		for (j=0 ; j < nentries; j++) {
 		
 			// progress bar			
 			if (j % 500 == 1 ) {
-				printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, j,GoodMiel);
-	   			fflush(stdout);
-			    }
+					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
+		   			fflush(stdout);
+					}
 			if (j % 5000==1) BarString[26] = NextCycle();
 			if (j % (nentries/20)==1) {
-				BarString[Loop+1] = '=';
-				printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events) ",inputname.c_str(), BarString, j,GoodMiel);
-				fflush(stdout);
-				Loop++ ; 
-				}
+					BarString[Loop+1] = '=';
+					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%])  ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
+					fflush(stdout);
+					Loop++ ; 
+					}
 			
 			//Get the entry and set the events in the new Tree
 			GoodEvent=false; 
@@ -177,9 +184,9 @@ int main(int argc, char **argv) {
 						//getchar();
 					 	}
 					int time = GetTimeDifference(SEG,seg);
-					gMielData->SetMiel(seg, gMiel_st.TableAt[seg],
-					CalibrateMielEnergy(seg,gMiel_st.TableAt[seg]),
-					CalibrateMielTime(SEG,seg,time) ) ;
+					gMielData->SetMiel(seg, gMiel_st.TableAt[seg], // segment and charge 
+					CalibrateMielEnergy(seg,gMiel_st.TableAt[seg]), // calibrated energy 
+					CalibrateMielTime(SEG,seg,time) ) ; // calibrated time
 				}
 				
 			}
@@ -217,7 +224,7 @@ int main(int argc, char **argv) {
 		gOutputFile->Close(); 
 
 		gNewTree=NULL;
-		gOldTree=NULL;		
+		gOldTree=NULL;
 		gOutputFile=NULL;
 		
 		stopwatch.Stop(); 
@@ -228,6 +235,10 @@ int main(int argc, char **argv) {
 		
 		}//end of input files
 
+
+	delete gMielData ; 	// free memory
+	delete gMielEvent ;     // free memory
+	
 	}//end 
 
 
@@ -235,21 +246,6 @@ int main(int argc, char **argv) {
 // #########################################################################################
 //                                functions start here 
 // #########################################################################################
-
-void ReadTimeCalibration(string inFile) {
-
-  double channel, coeff;
-
-  ifstream input(inFile);
-  while (true) {
-    input >> channel >> coeff;
-    if (input.eof()) break;
-    gTimeCalibration.push_back( coeff );
-  }
-
-  input.close();
-
-}
 
 void PrintBasicMiel(){
 
@@ -308,7 +304,12 @@ int GetTimeDifference(int SEG, int seg){
 	if (SEG == seg ) return 0 ;
 	
 	int sign = +1 ;  
-	if (SEG > seg ) sign = -sign;
+	if (SEG > seg ) {  // flip values to correspond to the right ADC,  
+		int temp = SEG ; 
+		SEG = seg ; 
+		seg = temp ;
+		sign = -sign; //and return the negatif value
+		}
 	
 	if (SEG == 0 ) {
 		if (seg == 1)	return sign*gMiel_st.TableAt[MielT1T2];
@@ -352,39 +353,130 @@ void ReadEnergyCalibration(string fFilename) {
       sVector.push_back(sLin);
       sVector.push_back(sGain);
       sVector.push_back(sQuad);
-      gCalibration.push_back(sVector);
+      gECalibrationCoeff.push_back(sVector);
     }
     sCalFile.close(); 
-  } else cout << "Unable to open file" << endl;
+  } 
+  else {
+  	cout << "Unable to open file, no energy calibration will be made,   " << endl;
+  	gECalibrationRead = false ; 
+  }
 
-  int size = gCalibration.size();
-  printf("\tRead in %d miel channels\n", size);
+  int size = gECalibrationCoeff.size();
+  printf("\tRead in %d miel energy channels\n\n", size);
+
+//inspect vector 
+/*
+  for ( int i = 0 ; i < gECalibrationCoeff.size(); i++) {
+    	cout << i << " => " << gECalibrationCoeff.at(i).size() << '\n';
+    	for (int j = 0 ; j < gECalibrationCoeff.at(i).size()  ; j++) {
+			cout << " \t " << gECalibrationCoeff.at(i).at(j); 
+			}
+    cout << "\n" ; 
+  }
+getchar();
+*/
+ 
+}
+
+
+void ReadTimeCalibration(string fFilename) {
+
+  int sSEG, sSeg;
+  double sLin, sGain, sQuad;  
+
+  ifstream sCalFile(fFilename);
+  if (sCalFile.is_open()) {
+    while ( true )  {
+      sCalFile >> sSEG >> sSeg >> sLin >> sGain >> sQuad;
+      int key = sSEG*10 + sSeg ; 
+      if ( sCalFile.eof()) break;
+      vector<double> sVector;
+      sVector.push_back(sLin);
+      sVector.push_back(sGain);
+      sVector.push_back(sQuad);
+      gTCalibrationCoeff[key]= sVector ;
+    }
+    sCalFile.close(); 
+  }   
+  else {
+  	cout << "Unable to open file, no time calibration will be made,   " << endl;
+  	gTCalibrationRead = false ; 
+  }
+  
+  int size = gTCalibrationCoeff.size();
+  printf("\tRead in %d miel time channels\n\n", size);
+
+//inspect map
+/*  
+  std::map<int, vector<double> >::iterator it;
+  for ( it=gTCalibrationCoeff.begin(); it!=gTCalibrationCoeff.end(); ++it) {
+    std::cout << it->first << " => " << it->second.size() << '\n';
+    for (int i = 0 ; i < it->second.size()  ; i++) {
+		cout << " \t " << it->second.at(i); 
+		}
+    cout << "\n" ; 
+  }
+ */
+ 
 
 }
 
+
 // ##############################
 float CalibrateMielEnergy(int segment, int E_charge) {
-  if (gEnergyCalibrationRead) {
-    float temp = 0;
-    for (int i=0; i<gCalibration.at(segment).size(); i++)
-      temp += gCalibration.at(segment).at(i) * pow(static_cast<double>(E_charge), i);
-    return temp ; 
-  } else
+    
+  if (gECalibrationRead) {
+		float temp = 0;
+		for (int i=0; i<gECalibrationCoeff.at(segment).size(); i++)
+		  temp += gECalibrationCoeff.at(segment).at(i) * pow(static_cast<double>(E_charge), i);
+		return temp ; 
+	  } 
+  else
     return E_charge;  
 }
 
 // ##############################
-float CalibrateMielTime(int SEGMENT, int segment, int T_charge){
-//need to implement 
-return T_charge ; 
+float CalibrateMielTime(int SEG, int seg, int T_charge){
+
+	int sign = +1 ; 
+  	if (gTCalibrationRead) {
+  		 // flip values to correspond to the right coeff of the corresponding ADC,  
+		if ( SEG > seg ) { 
+			int temp = SEG ; 
+			SEG = seg ; 
+			seg = temp ;
+			sign = -sign; //and return the negatif value
+			}
+		// create the map key
+		int key = SEG*10 + seg ; 
+		// calibrate
+		float temp = 0;
+		for (int i = 0; i < gTCalibrationCoeff[key].size() ; i++)
+			temp += gTCalibrationCoeff[key].at(i) * pow(static_cast<double>(T_charge), i);
+		return sign*temp ; 
+	  } 
+  else
+    return T_charge;
 }
 
+void InputMessage(){
+		printf(" \tto analyse <file>			: -f  <file>  \n");
+		printf(" \tto load <file> for energy calibration	: -ce <file>   \n");
+		printf(" \tto load <file> for time calibration	: -ct <file>  \n");
+		printf(" \tto load analysis physics <option>	: -phys/-p <option-1> <option-2> etc...  \n");
+		printf(" \tto write produce flat histogram <file>	: -hist/-h <file>   \n");
+		exit(-1);		
+		}
+			
 
 // ##############################
 void ParseInputLine(int argc, char **argv) {
 
 	if(argc < 2) {
-	printf(" use : ./struct2class -c <calibration-file> -f <data-root-file> (XXX.root YYY.root .. etc...) \n");
+	printf(" (minimal) use 		: ./AnalyseAnu.exe -f <data-root-file> (file1.root file2.root .. etc...) \n");
+	printf(" Possible options 	:  \n");
+	InputMessage(); 
 	return ;
 	}
 
@@ -403,43 +495,113 @@ void ParseInputLine(int argc, char **argv) {
 		continue ;
     }
     
-    if (strcmp(argv[i], "-c") == 0) { //option = 2
+    if (strcmp(argv[i], "-ce") == 0) { //option = 2
 		if  (i+1 == argc) {
 			printf(" You must provide a file after option  : %s \n", argv[i]);
 			printf(" Program aborted\n");
 			exit(-1);		
 		}
-    option = CALFILE ;
+    option = ECALFILE ;
+    continue;
+    }
+ 
+     if (strcmp(argv[i], "-ct") == 0) { //option = 3
+		if  (i+1 == argc) {
+			printf(" You must provide a file after option  : %s \n", argv[i]);
+			printf(" Program aborted\n");
+			exit(-1);		
+		}
+    option = TCALFILE ;
     continue;
     }
     
-   if (option==ROOTFILE) gRootFilesList.push_back(argv[i]);
-   else   if (option==CALFILE) gCalibrationFilesList.push_back(argv[i]) ;
-          else if (option==NONE) {
-			printf(" Provide an option before file \n");
-			printf(" to analyse <file>              : -f <file>  \n");
-			printf(" to load <file> for calibration : -c <file> :  \n");
+	if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "-phys") == 0) { //option = 4  { physics option what are the branches that is needed to figure in the tree}  
+		if  (i+1 == argc) {
+			printf(" You must provide an analysis mode after option  : %s \n", argv[i]);
+			printf(" Program aborted\n");
 			exit(-1);		
-			}
+		}
+    option = PHYSICS ;
+    continue;
+    }
+
+	if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-hist") == 0) { //option = 5  { generate flat histograms }  
+		if  (i+1 == argc) {
+			printf(" You must provide a flat histogram file name after option  : %s \n", argv[i]);
+			printf(" Program aborted\n");
+			exit(-1);		
+		}
+    option = HIST ;
+    continue;
+    }
+       
+   if (option==ROOTFILE) gRootFilesList.push_back(argv[i]);
+	   else   if (option==ECALFILE) gECalibrationFilesList.push_back(argv[i]) ;
+		   else   if (option==TCALFILE) gTCalibrationFilesList.push_back(argv[i]) ;
+		 	   else   if (option==PHYSICS) gPhysicsOptionList.push_back(argv[i]) ;
+		 	   		else   if (option==HIST) gHistFileName.push_back(argv[i])  ; // if several file names are given in a row, the last one will be the name of the flat histogram  
+          
+          else if (option==NONE)  {
+      			printf(" Provide an option before file : \n");
+      			InputMessage();
+          }
+          
     	}
+    
+   printf(" \n + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + \n");	 		   
     
     if (gRootFilesList.size()==0) {
             printf(" No root files are provided.. \n");
-			printf(" to analyse <file>              : -f <file>  \n");
+			printf(" \tto analyse <file>              : -f <file>  \n");
+    		}
+    if (gECalibrationFilesList.size()==0) {
+            printf(" No energy calibration files are provided.. \n");
+			printf(" \tto load <file> for calibration : -ce <file> \n");
+    		}
+    if (gTCalibrationFilesList.size()==0) {
+            printf(" No time calibration files are provided.. \n");
+			printf(" \tto load <file> for calibration : -ct <file> \n");
+    		}
+    if (gPhysicsOptionList.size()==0) {
+            printf(" No Physics option are selected.. All options will be constructed \n");
+			printf(" \tto select <option> for calibration : -p <data>/<sum>/<cluster>/<pair> \n");
+    		} 
+    if (gHistFileName.size()==0) {
+            printf(" No Flat histogram .. \n");
+			printf(" \tto produce flat histogram : -hist <output-file-name> \n");
     		}
     
-    if (gCalibrationFilesList.size()==0) {
-            printf(" No calibration files are provided.. \n");
-			printf(" to load <file> for calibration : -c <file> :  \n");
-    		}
-       
-// Read calibration 
-    for(unsigned i = 0;i<gCalibrationFilesList.size();i++)	{
-    		printf(" Reading in calibration file %s\n", gCalibrationFilesList.at(i) );
-		    ReadEnergyCalibration(gCalibrationFilesList.at(i));
-		    gEnergyCalibrationRead=true;
-    		}
-
+    printf(" \n + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + \n");	 		   
+// Read files / Options / calibrations
+			for(unsigned i = 0 ; i<gRootFilesList.size();i++){ 
+				if( i == 0 ) printf(" Reading in root files that will be analysed : ");
+				printf(" %s\t", gRootFilesList.at(i) );  // this will be passed as booleans to the TMielEvent class
+				if( i+1 == gRootFilesList.size()) printf("\n\n"); 
+				}
+    		if(gECalibrationFilesList.size()){
+    			gECalibrationRead=true;
+    			unsigned index = gECalibrationFilesList.size()-1 ; 
+				printf(" Reading in energy calibration file %s\n", gECalibrationFilesList.at(index) );
+				ReadEnergyCalibration(gECalibrationFilesList.at(index)); // read the last one given 
+				}
+    		if(gTCalibrationFilesList.size()){
+				gTCalibrationRead=true;
+    			unsigned index = gTCalibrationFilesList.size()-1 ; 
+				printf(" Reading in time calibration file %s\n", gTCalibrationFilesList.at(index) );
+				ReadTimeCalibration(gTCalibrationFilesList.at(index)); // read the last one given 
+				}
+			for(unsigned i = 0 ; i<gPhysicsOptionList.size() ; i++)	{
+				//gPhysOptionRead=true;
+				if( i == 0 ) printf(" Reading in physics options : ");
+				printf(" %s\t", gPhysicsOptionList.at(i) );  // this will be passed as booleans to the TMielEvent class
+				if( i+1 == gPhysicsOptionList.size()) printf("\n\n"); 
+				}   		 
+    		if(gHistFileName.size()){
+				//gHistOptionRead=true;
+    			unsigned index = gHistFileName.size()-1 ; 
+				printf(" Reading in the flat histogram file name : "); 
+				printf(" %s\n\n", gHistFileName.at(index) );  // this will be passed as booleans to the TMielEvent class
+				}
 }
 
 char NextCycle(){
