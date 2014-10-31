@@ -158,20 +158,20 @@ int main(int argc, char **argv) {
     	int j = 0 ; 
 		char BarString[30] = "[                     ] <( )>";
 		int  Loop = 0 ;
-		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries); 
+		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries); 
 		fflush(stdout);
   
 		for (j=0 ; j < nentries; j++) {
 		
 			// progress bar			
 			if (j % 500 == 1 ) {
-					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
+					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
 		   			fflush(stdout);
 					}
 			if (j % 5000==1) BarString[26] = NextCycle();
 			if (j % (nentries/20)==1) {
 					BarString[Loop+1] = '=';
-					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%])  ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
+					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%])  ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
 					fflush(stdout);
 					Loop++ ; 
 					}
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
 			gMielEvent->Clear();
 			if (j % 50000 == 0 ) gNewTree->AutoSave("FlushBaskets");  
 			}
-		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%])  Done! \n",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/j);
+		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%])  Done! \n",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/j);
 		
 		// Write the new trees in seperate files 
 		gNewTree->Write();	// fill the tree	
