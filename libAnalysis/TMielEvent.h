@@ -34,13 +34,13 @@ class TMielEvent : public TObject {
 	vector<TMielHit>	fCluster; 	// cluster mode (generates a multiplicity 1, 2 and 3 )
 	vector<TMielHit>	fPair; 		// pair mode (generates a multiplicity of 1 or 2 )    N.B : This mode discard some hits on purpose
 
-
 	//flags 
 	int 				fPattern;
 	float               fRatioE1E2;     // Ratio of energy between the segments having the highest energy if it's a "real" pair it should go from ~1 to ~0.5
 	int                 fConflict; 		// equal to 1 when a segement can be added to the two major segments, to solve the conflict, add to the lower in energy
 	float               fPairRatioE1E2; // Same as fRatioE1E2 but made for fPair
-
+	
+	  
 	public:
 // C O N S T R U C T O R / D E S T R U C T O R
 	TMielEvent();
@@ -52,8 +52,9 @@ class TMielEvent : public TObject {
 	bool    	TimeAdjacent(float timeA, float timeB); // test if A an B are neighbouring segments 
 	bool    	PositionAdjacent(const TVector2& A, const TVector2& B); // test if A an B are neighbouring segments
 	void    	CalculatePattern() ;
-	void		BuildAddBack();	
-	
+	void		BuildAddBack(bool cluster=false, bool pair=false, bool pairsum=false);
+	//void		BuildAddBack();	
+			
 	TMielHit    AddHits(const vector<TMielHit>& ); // used in add-backs
 	
 	//Add-Back schemes

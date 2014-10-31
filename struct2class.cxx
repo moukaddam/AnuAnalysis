@@ -41,8 +41,9 @@ using namespace std;
 // The type (uShort_t) and the order of the declaration is relevant
 // Use : MielTree->Print() to print the structure
 // *****************************************************************************
+const int param_number  = 26 ;          // experiment parameters number 
 struct Miel_st {
- UShort_t TableAt[26];
+ UShort_t TableAt[param_number]; 
  } gMiel_st; // old tree , struct based
 
 enum IDENTITY {
@@ -64,8 +65,13 @@ enum FileOption {NONE, ROOTFILE, ECALFILE, TCALFILE, PHYSICS, HIST} ;
 //Other variables
 int    gCycle=0;
 vector < vector<double> > gECalibrationCoeff;
-//vector <double> gTCalibration[6][6]; // 6 * 6 segments // only half of it will be used 
 std::map<int, vector <double> > gTCalibrationCoeff;
+
+//default value 
+bool gkData = true ; 
+bool gkPairMode = false ; 
+bool gkClusterMode = false  ;
+bool gkPairSumMode = false  ; // not implemented in TMielEvent yet 
 
 vector < vector<int> > gTimeCombinations;
 bool 	gECalibrationRead=false;
@@ -81,13 +87,13 @@ void PrintBasicMiel();
 void ParseInputLine(int argc, char **argv);
 char NextCycle() ; 
 void InputMessage(); 
+void ParsePhysicsOption(); 
 
 // #########################################################################################
 //                                Main function
 // #########################################################################################
 
 int main(int argc, char **argv) {
-
 
 	// parse input line  
 	ParseInputLine(argc,argv) ; 
@@ -136,7 +142,7 @@ int main(int argc, char **argv) {
 
 		//point to the new tree and set the addresses
 		gNewTree = new TTree("MielDataTree","MielDataTree");
-		gNewTree->Branch("TMielData",&gMielData);
+		if(gkData) gNewTree->Branch("TMielData",&gMielData);
 		gNewTree->Branch("TMielEvent",&gMielEvent);
 
 		//Iterate through events
@@ -203,7 +209,7 @@ int main(int argc, char **argv) {
 			if (GoodEvent){
 				//cout << " G O O D   E V E N T " << endl;	
 				gMielEvent->SetMielData(gMielData); // Calculate positions, patterns, etc..
-				gMielEvent->BuildAddBack(); //Calculate AddBack
+				gMielEvent->BuildAddBack(gkClusterMode,gkPairMode, gkPairSumMode); //Calculate AddBack
 		
 				//PrintBasicMiel();
 				//gMielData->Print();				
@@ -594,7 +600,9 @@ void ParseInputLine(int argc, char **argv) {
 				//gPhysOptionRead=true;
 				if( i == 0 ) printf(" Reading in physics options : ");
 				printf(" %s\t", gPhysicsOptionList.at(i) );  // this will be passed as booleans to the TMielEvent class
-				if( i+1 == gPhysicsOptionList.size()) printf("\n\n"); 
+				if( i+1 == gPhysicsOptionList.size()) {
+					ParsePhysicsOption(); 
+					printf("\n\n");} 
 				}   		 
     		if(gHistFileName.size()){
 				//gHistOptionRead=true;
@@ -614,4 +622,32 @@ if (gCycle==4 )  { gCycle=1 ; return '-' ; }
 
 return '#' ;
 }
+
+
+void ParsePhysicsOption(){
+
+//default
+ gkData = false ; 
+ gkPairMode = false ; 
+ gkClusterMode = false  ;
+ gkPairSumMode = false  ; // not implemented in TMielEvent yet 
+
+cout << "\n\tSelected analysis mode : " << endl ; 
+cout << "\t------------------------" << endl ;
+	for(unsigned i = 0 ; i<gPhysicsOptionList.size();i++){
+	 
+		if(strcmp(gPhysicsOptionList.at(i), "data") == 0) 	{ gkData = true ; cout << "\t\t Enabled "<< gPhysicsOptionList.at(i) << " mode "<< endl ; continue ;  }
+		else 
+	 	if(strcmp(gPhysicsOptionList.at(i), "pair") == 0) 	{ gkPairMode = true ; cout << "\t\t Enabled "<< gPhysicsOptionList.at(i) << " mode "<< endl ; continue ; } 
+	 	else 
+	 	if(strcmp(gPhysicsOptionList.at(i), "cluster") == 0)	{gkClusterMode = true  ; cout << "\t\t Enabled "<< gPhysicsOptionList.at(i) << " mode "<< endl ; continue ; }
+	 	else
+	 	if(strcmp(gPhysicsOptionList.at(i), "pairsum") == 0)  {gkPairSumMode = false ; cout << "\t\t Enabled "<< gPhysicsOptionList.at(i) << "\t Mode not implemented yet! " << endl ; continue ; } // not implemented in TMielEvent yet
+		else 
+		{cout << "\t\t   ???   "<< gPhysicsOptionList.at(i) <<"\t\t\t Mode does not exist "  << endl ; continue ; } 
+	}
+			
+
+}
+
 

@@ -46,9 +46,9 @@ void TMielEvent::Clear() {
 	fPattern =  0 ;
 	fPairRatioE1E2 = 0; 
 	fRatioE1E2 = 0 ; 
-	fConflict = 0 ; 
+	fConflict = 0 ;
+	 
 }
-
 
 
 void TMielEvent::Print() {
@@ -506,16 +506,22 @@ bool TMielEvent::TimeAdjacent(float timeA, float timeB){
 }
 
 
+
+//void TMielEvent::BuildAddBack(){
+//BuildAddBack(true /*cluster*/, false /*pair*/, false /*pairsum*/); //default 
+//}
+
 	
-void TMielEvent::BuildAddBack(){
+void TMielEvent::BuildAddBack(bool cluster, bool pair, bool pairsum){
 	
 	//order is strict 
-	SumHits() ; 
-	ClusterHits() ;
-	PairHits() ;
+	SumHits() ;  // always true 
+	 				
+	if (cluster) 	{ ClusterHits(); };
+	if (pair) 		{ PairHits() ; }
 	
 	//other Add-back schemes CALLS goes here 
-	//PairSumHits() ; 
+	//if (pairSum) PairSumHits() ; 
 	//...
 }
 	
