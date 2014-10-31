@@ -83,6 +83,7 @@ void ReadEnergyCalibration(string filename);
 void ReadTimeCalibration(string filename);
 float CalibrateMielEnergy(int segment, int E_charge); 
 float CalibrateMielTime(int SEGMENT, int segment, int time); 
+double CalculateBRho(float energy);
 void PrintBasicMiel();
 void ParseInputLine(int argc, char **argv);
 char NextCycle() ; 
@@ -111,6 +112,7 @@ int main(int argc, char **argv) {
 	
 	// Analyse root files  
 	bool GoodEvent=false; 
+	//gEnergyCalibrationRead=false;
 
 	gMielData 	= new TMielData(); 	// organise data
 	gMielEvent 	= new TMielEvent();     // analyse data
@@ -148,27 +150,28 @@ int main(int argc, char **argv) {
 		//Iterate through events
 		Int_t nentries = (Int_t)gOldTree->GetEntries();
 		cout << "Tree contains " << nentries <<endl;
-		nentries = 100000 ; // experimenting value
+		//nentries = 50000000 ; // experimenting value
+
 
 		// progress bar variables
 		int GoodMiel = 0 ;
     	int j = 0 ; 
 		char BarString[30] = "[                     ] <( )>";
 		int  Loop = 0 ;
-		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries); 
+		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries); 
 		fflush(stdout);
   
 		for (j=0 ; j < nentries; j++) {
 		
 			// progress bar			
 			if (j % 500 == 1 ) {
-					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
+					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%]) ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
 		   			fflush(stdout);
 					}
 			if (j % 5000==1) BarString[26] = NextCycle();
 			if (j % (nentries/20)==1) {
 					BarString[Loop+1] = '=';
-					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%])  ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
+					printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%])  ",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/nentries);
 					fflush(stdout);
 					Loop++ ; 
 					}
@@ -190,8 +193,10 @@ int main(int argc, char **argv) {
 						//getchar();
 					 	}
 					int time = GetTimeDifference(SEG,seg);
+          float energy = CalibrateMielEnergy(seg,gMiel_st.TableAt[seg]);
+          double brho = CalculateBRho(energy);
 					gMielData->SetMiel(seg, gMiel_st.TableAt[seg], // segment and charge 
-					CalibrateMielEnergy(seg,gMiel_st.TableAt[seg]), // calibrated energy 
+					energy, brho, // calibrated energy & brho
 					CalibrateMielTime(SEG,seg,time) ) ; // calibrated time
 				}
 				
@@ -200,8 +205,10 @@ int main(int argc, char **argv) {
 			//gammas
 			gMielData->SetAptherix(gMiel_st.TableAt[Aptherix]);
 			//Control Measurements
-			gMielData->SetHallProbe(gMiel_st.TableAt[HallProbe]);
-			gMielData->SetVcontE(gMiel_st.TableAt[VcontE]);	
+      double magfield = 4.04013 * static_cast<double>(gMiel_st.TableAt[HallProbe]) + 28.571;
+			gMielData->SetHallProbe(magfield);
+      double contv = 4.1314 * static_cast<double>(gMiel_st.TableAt[VcontE]) - 3.8348;
+			gMielData->SetVcontE(contv);	
 			gMielData->SetVContG(gMiel_st.TableAt[VcontG]);
 			gMielData->SetChopper(gMiel_st.TableAt[Chopper]);
 		
@@ -222,7 +229,7 @@ int main(int argc, char **argv) {
 			gMielEvent->Clear();
 			if (j % 50000 == 0 ) gNewTree->AutoSave("FlushBaskets");  
 			}
-		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%])  Done! \n",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/j);
+		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%])  Done! \n",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/j);
 		
 		// Write the new trees in seperate files 
 		gNewTree->Write();	// fill the tree	
@@ -464,6 +471,17 @@ float CalibrateMielTime(int SEG, int seg, int T_charge){
 	  } 
   else
     return T_charge;
+}
+
+double CalculateBRho(float energy) {
+
+  double constant = 17045.09;
+  double electron = 510.998928;
+
+  double brho = (constant / electron) * sqrt( pow(energy, 2.) + 2.*electron*energy );
+
+  return brho;
+
 }
 
 void InputMessage(){

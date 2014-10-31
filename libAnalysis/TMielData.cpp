@@ -37,9 +37,10 @@ void TMielData::Clear() {
 	fMielSegment.clear();
 	fMielCharge.clear();
 	fMielEnergy.clear();
+  fMielBRho.clear();
 	fMielTime.clear(); 
 
-  	fMielChopper=-1;
+ 	fMielChopper=-1;
 	fMielAptherix=-1; 
 	fMielHallProbe=-1; 
 	fMielVcontE=-1; 
@@ -69,6 +70,12 @@ void TMielData::Print() {
 	cout << "Miel Energy size : " << fMielEnergy.size() <<"\n" ;
 	for (unsigned i = 0 ; i < fMielEnergy.size() ; i++ ) {
 	cout << " "<< fMielEnergy.at(i)<<"\t";
+	}
+	cout << "\n-------------------------\n" ; 
+
+  cout << "Miel BRho size : " << fMielBRho.size() <<"\n" ;
+	for (unsigned i = 0 ; i < fMielBRho.size() ; i++ ) {
+	cout << " "<< fMielBRho.at(i)<<"\t";
 	}
 	cout << "\n-------------------------\n" ; 
 

@@ -12,6 +12,7 @@ class TMielData : public TObject {
 	std::vector<UShort_t>	fMielSegment;
 	std::vector<Int_t>		fMielCharge;
 	std::vector<Double_t>	fMielEnergy;
+  std::vector<Double_t> fMielBRho;
 	std::vector<Double_t>		fMielTime; 
 
 	Int_t		fMielAptherix; 
@@ -33,19 +34,21 @@ class TMielData : public TObject {
 	inline void SetSegment(UShort_t Seg)		{	fMielSegment.push_back(Seg);	} 
 	inline void SetCharge(Int_t Charge)			{	fMielCharge.push_back(Charge);	} 	
 	inline void SetEnergy(Double_t Energy)		{	fMielEnergy.push_back(Energy);	}		
+  inline void SetBRho(Double_t BRho)        { fMielBRho.push_back(BRho);    }
 	inline void SetTime(Double_t Time)	    	{	fMielTime.push_back(Time);		}		
 
 	inline void SetAptherix(Int_t Aptherix)		{	fMielAptherix=(Aptherix);	} 
 	inline void SetHallProbe(Int_t HallProbe)	{	fMielHallProbe=(HallProbe);	} 	
 	inline void SetVcontE(Int_t VcontE)			{	fMielVcontE=(VcontE);	}		
 	inline void SetVContG(Int_t VcontG)			{	fMielVcontG=(VcontG);	}	
-  	inline void SetChopper(Int_t Chopper) 		{ 	fMielChopper=(Chopper); 	}
+  inline void SetChopper(Int_t Chopper) 		{ 	fMielChopper=(Chopper); 	}
 
 	// Set all Simultaneously	
-	inline void SetMiel(UShort_t Seg, UInt_t Charge, Double_t Energy, Double_t Time)	{
+	inline void SetMiel(UShort_t Seg, UInt_t Charge, Double_t Energy, Double_t BRho, Double_t Time)	{
 				SetSegment(Seg); 
 				SetCharge(Charge);	
 				SetEnergy(Energy);	
+        SetBRho(BRho);
 				SetTime(Time);		
 	}
 
@@ -55,6 +58,7 @@ class TMielData : public TObject {
 	inline UShort_t GetSegment(UInt_t i)	{	return fMielSegment.at(i);	}	
 	inline UInt_t 	GetCharge(UInt_t i)		{	return fMielCharge.at(i);	}		
 	inline Double_t GetEnergy(UInt_t i)		{	return fMielEnergy.at(i);	}
+  inline Double_t GetBRho(UInt_t i)   { return fMielBRho.at(i); }
 	inline Double_t GetTime(UInt_t i)		{	return fMielTime.at(i);	}
 		
 	inline UShort_t GetAptherix(UInt_t i)	{	return fMielAptherix;	}	
