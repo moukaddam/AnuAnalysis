@@ -57,15 +57,16 @@ enum IDENTITY {
 
 enum FileOption {NONE, ROOTFILE, ECALFILE, TCALFILE, PHYSICS, HIST} ; 
  vector <char*> gRootFilesList;
- vector <char*> gECalibrationFilesList; 
+ vector <char*> gECalibrationFilesList;  // file list for all all energy calibrations (Miel(electrons), Aptherix (gamma))
  vector <char*> gTCalibrationFilesList; 
  vector <char*> gPhysicsOptionList;
  vector <char*> gHistFileName; // only the last filename will be considered
 
 //Other variables
 int    gCycle=0;
-vector < vector<double> > gECalibrationCoeff;
-std::map<int, vector <double> > gTCalibrationCoeff;
+vector < vector<double> > gECalibrationCoeff; // Miel energy electrons
+		 vector<double>   gGCalibrationCoeff; // Aptherix gamma
+map<int, vector<double> > gTCalibrationCoeff; // Miel time calibrations
 
 //boolean for mode selection
 bool gkData = false ; 
@@ -73,22 +74,27 @@ bool gkPairMode = false ;
 bool gkClusterMode = false  ;
 bool gkPairSumMode = false  ; // not implemented in TMielEvent yet 
 
-vector < vector<int> > gTimeCombinations;
-bool 	gECalibrationRead=false;
-bool 	gTCalibrationRead=false;;
+bool gECalibrationRead=false;
+bool gGCalibrationRead=false;
+bool gTCalibrationRead=false;
+bool gWriteHist=false;
+int  gFold=2;
 
 //Declare functions
 int GetTimeDifference(int SEG, int seg);
 void ReadEnergyCalibration(string filename);
 void ReadTimeCalibration(string filename);
-float CalibrateMielEnergy(int segment, int E_charge); 
-float CalibrateMielTime(int SEGMENT, int segment, int time); 
+double CalibrateMielEnergy(int segment, int E_charge);
+double CalibrateAptherixEnergy(int G_charge); 
+double CalibrateMielTime(int SEGMENT, int segment, int time); 
 double CalculateBRho(float energy);
 void PrintBasicMiel();
 void ParseInputLine(int argc, char **argv);
 char NextCycle() ; 
 void InputMessage(); 
-void ParsePhysicsOption(); 
+void ParsePhysicsOption();
+void OpenHistFile();
+void FillHist();  // limit on the miel multiplicity energy, useful for accurate calibrations 
 
 // #########################################################################################
 //                                Main function
@@ -112,8 +118,6 @@ int main(int argc, char **argv) {
 	
 	// Analyse root files  
 	bool GoodEvent=false; 
-	//gEnergyCalibrationRead=false;
-
 	gMielData 	= new TMielData(); 	// organise data
 	gMielEvent 	= new TMielEvent();     // analyse data
     
@@ -181,7 +185,7 @@ int main(int argc, char **argv) {
 			bool TimeOriginSet = false ;
 			gOldTree->GetEntry(j);
 
-			int SEG = -1 ; // this is the origin of time
+			int SEG = -1 ; // variable holding the segment used as origin of time
 			for (int seg = 0 ; seg < 6 ; seg++ ) {
 				if (gMiel_st.TableAt[seg] > 0) { // keep this good event
 					GoodMiel++;					
@@ -189,12 +193,10 @@ int main(int argc, char **argv) {
 					if(!TimeOriginSet) {
 						SEG = seg ; 
 						TimeOriginSet = true ;
-						//cout << " SEG = "<< SEG <<"\t";
-						//getchar();
 					 	}
 					int time = GetTimeDifference(SEG,seg);
-          float energy = CalibrateMielEnergy(seg,gMiel_st.TableAt[seg]);
-          double brho = CalculateBRho(energy);
+					double energy = CalibrateMielEnergy(seg,gMiel_st.TableAt[seg]);
+					double brho = CalculateBRho(energy);
 					gMielData->SetMiel(seg, gMiel_st.TableAt[seg], // segment and charge 
 					energy, brho, // calibrated energy & brho
 					CalibrateMielTime(SEG,seg,time) ) ; // calibrated time
@@ -202,29 +204,42 @@ int main(int argc, char **argv) {
 				
 			}
 			
-			//gammas
-			gMielData->SetAptherix(gMiel_st.TableAt[Aptherix]);
+			//gammas 
+			if (gMiel_st.TableAt[Aptherix] > 0) { // keep this good event
+			//GoodGamma++;
+			//GoodEvent=true;					
+			double gamma = gMiel_st.TableAt[Aptherix] ;  // gamma energy 
+			gamma = CalibrateAptherixEnergy(gamma);
+			gMielData->SetAptherix(gamma);
+			}
+			
 			//Control Measurements
-      double magfield = 4.04013 * static_cast<double>(gMiel_st.TableAt[HallProbe]) + 28.571;
+      		double magfield = 4.04013 * static_cast<double>(gMiel_st.TableAt[HallProbe]) + 28.571;  // these numbers should be explained 
 			gMielData->SetHallProbe(magfield);
-      double contv = 4.1314 * static_cast<double>(gMiel_st.TableAt[VcontE]) - 3.8348;
+      		double contv = 4.1314 * static_cast<double>(gMiel_st.TableAt[VcontE]) - 3.8348; // these numbers should be explained 
 			gMielData->SetVcontE(contv);	
 			gMielData->SetVContG(gMiel_st.TableAt[VcontG]);
 			gMielData->SetChopper(gMiel_st.TableAt[Chopper]);
 		
-			//FillHist(); 
-			if (GoodEvent){
+
+
+			if (GoodEvent){ // if gamma or miel are good 
+				
 				//cout << " G O O D   E V E N T " << endl;	
 				gMielEvent->SetMielData(gMielData); // Calculate positions, patterns, etc..
 				gMielEvent->BuildAddBack(gkClusterMode,gkPairMode, gkPairSumMode); //Calculate AddBack
-		
+				gNewTree->Fill();	// fill the tree	
+				
 				//PrintBasicMiel();
 				//gMielData->Print();				
 				//gMielEvent->Print();
 				//getchar() ;
 				}
-		
-			gNewTree->Fill();	// fill the tree	
+			
+			// Fill the histograms
+			if (gWriteHist) FillHist();  
+			
+			//cout << "Hello" << endl ; 
 			gMielData->Clear();
 			gMielEvent->Clear();
 			if (j % 50000 == 0 ) gNewTree->AutoSave("FlushBaskets");  
@@ -232,7 +247,7 @@ int main(int argc, char **argv) {
 		printf("\rProcessing events from file %s ... %s (%d total events) (%d Miel events [%2.0f\%%])  Done! \n",inputname.c_str(), BarString, j , GoodMiel, GoodMiel*100.0/j);
 		
 		// Write the new trees in seperate files 
-		gNewTree->Write();	// fill the tree	
+		gNewTree->Write();	
 		gOutputFile->Write();
 		gOutputFile->Close(); 
 
@@ -356,30 +371,68 @@ void ReadEnergyCalibration(string fFilename) {
 
   int sSeg;
   double sLin, sGain, sQuad;  
-
+  string sDetector; 
+  
   ifstream sCalFile(fFilename);
   if (sCalFile.is_open()) {
-    while ( true )  {
-      sCalFile >> sSeg >> sLin >> sGain >> sQuad;
-      if ( sCalFile.eof()) break;
-      vector<double> sVector;
-      sVector.push_back(sLin);
-      sVector.push_back(sGain);
-      sVector.push_back(sQuad);
-      gECalibrationCoeff.push_back(sVector);
-    }
-    sCalFile.close(); 
-  } 
+		while ( sCalFile >> sDetector )  {
+			if ( sCalFile.eof()) break;
+			if (sDetector == "MIEL" || sDetector == "miel" || sDetector == "ELECTRON") {
+				for (int i = 0 ; i < 6 ; i++ ){ // read 6 channels
+				  sCalFile >> sSeg >> sLin >> sGain >> sQuad;
+				  vector<double> sVector;
+				  sVector.push_back(sLin);
+				  sVector.push_back(sGain);
+				  sVector.push_back(sQuad);
+				  gECalibrationCoeff.push_back(sVector);
+				  }
+				}
+			else if (sDetector == "GAMMA" || sDetector == "APTHERIX" || sDetector == "aptherix" ) {
+				  sCalFile >>  sLin >> sGain >> sQuad; //read 1 channel 
+				  gGCalibrationCoeff.push_back(sLin);
+				  gGCalibrationCoeff.push_back(sGain);
+				  gGCalibrationCoeff.push_back(sQuad);
+				  }
+			else{
+			  	cout << " This detector name is not supported, specify detector type : " << endl;
+			  	cout << " <MIEL> or <ELECTRON> for electron energy calibration, \n <APTHERIX> or <GAMMA> for gamma energy calibration" << endl;
+	  			cout << " No energy calibration will be made   " << endl;
+	  			break;
+			  	} 
+			}
+		sCalFile.close(); 
+	  } 
   else {
   	cout << "Unable to open file, no energy calibration will be made,   " << endl;
-  	gECalibrationRead = false ; 
+  	gECalibrationRead = false ;
+  	gGCalibrationRead = false ;  
   }
 
-  int size = gECalibrationCoeff.size();
-  printf("\tRead in %d miel energy channels\n\n", size);
+
+	int size = gECalibrationCoeff.size();
+	if(size) {
+		printf("\tRead in %d miel energy channels\n", size);
+		gECalibrationRead = true ;
+		}
+	else {
+		printf("\t\tCalibration for MIEL are not present \n");
+		gECalibrationRead = false ;
+		}
+
+	size = gGCalibrationCoeff.size();
+	if(size) {
+		printf("\tRead in 1 gamma energy channels\n\n");
+		gGCalibrationRead = true ;
+		}
+	else {
+	printf("\t\tCalibration for APTHERIX are not present \n\n");
+	gGCalibrationRead = false ;
+	}
+
 
 //inspect vector 
 /*
+ //electron 
   for ( int i = 0 ; i < gECalibrationCoeff.size(); i++) {
     	cout << i << " => " << gECalibrationCoeff.at(i).size() << '\n';
     	for (int j = 0 ; j < gECalibrationCoeff.at(i).size()  ; j++) {
@@ -387,6 +440,13 @@ void ReadEnergyCalibration(string fFilename) {
 			}
     cout << "\n" ; 
   }
+  
+  //gamma
+    	for (int j = 0 ; j < gGCalibrationCoeff.size()  ; j++) {
+			cout << " \t " << gGCalibrationCoeff.at(j); 
+			}
+    cout << "\n" ; 
+  
 getchar();
 */
  
@@ -437,7 +497,7 @@ void ReadTimeCalibration(string fFilename) {
 
 
 // ##############################
-float CalibrateMielEnergy(int segment, int E_charge) {
+double CalibrateMielEnergy(int segment, int E_charge) {
     
   if (gECalibrationRead) {
 		float temp = 0;
@@ -450,7 +510,20 @@ float CalibrateMielEnergy(int segment, int E_charge) {
 }
 
 // ##############################
-float CalibrateMielTime(int SEG, int seg, int T_charge){
+double CalibrateAptherixEnergy(int G_charge) { // gamma
+    
+  if (gGCalibrationRead) {
+		float temp = 0;
+		for (int i=0; i<gGCalibrationCoeff.size(); i++)
+		  temp += gGCalibrationCoeff.at(i) * pow(static_cast<double>(G_charge), i);
+		return temp ; 
+	  } 
+  else
+    return G_charge;  
+}
+
+// ##############################
+double CalibrateMielTime(int SEG, int seg, int T_charge){
 
 	int sign = +1 ; 
   	if (gTCalibrationRead) {
@@ -476,7 +549,7 @@ float CalibrateMielTime(int SEG, int seg, int T_charge){
 double CalculateBRho(float energy) {
 
   double constant = 17045.09;
-  double electron = 510.998928;
+  double electron = 510.998928; 
 
   double brho = (constant / electron) * sqrt( pow(energy, 2.) + 2.*electron*energy );
 
@@ -528,7 +601,7 @@ void ParseInputLine(int argc, char **argv) {
     option = ECALFILE ;
     continue;
     }
- 
+     
      if (strcmp(argv[i], "-ct") == 0) { //option = 3
 		if  (i+1 == argc) {
 			printf(" You must provide a file after option  : %s \n", argv[i]);
@@ -538,8 +611,8 @@ void ParseInputLine(int argc, char **argv) {
     option = TCALFILE ;
     continue;
     }
-    
-	if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "-phys") == 0) { //option = 4  { physics option what are the branches that is needed to figure in the tree}  
+       
+	if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "-phys") == 0) { //option = 5  { physics option what are the branches that is needed to figure in the tree}  
 		if  (i+1 == argc) {
 			printf(" You must provide an analysis mode after option  : %s \n", argv[i]);
 			printf(" Program aborted\n");
@@ -549,27 +622,28 @@ void ParseInputLine(int argc, char **argv) {
     continue;
     }
 
-	if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-hist") == 0) { //option = 5  { generate flat histograms }  
+	if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-hist") == 0) { //option = 6  { generate flat histograms }  
 		if  (i+1 == argc) {
 			printf(" You must provide a flat histogram file name after option  : %s \n", argv[i]);
 			printf(" Program aborted\n");
 			exit(-1);		
 		}
     option = HIST ;
+    gFold = 2 ; 
+    gWriteHist = true  ; 
     continue;
     }
        
    if (option==ROOTFILE) gRootFilesList.push_back(argv[i]);
-	   else   if (option==ECALFILE) gECalibrationFilesList.push_back(argv[i]) ;
-		   else   if (option==TCALFILE) gTCalibrationFilesList.push_back(argv[i]) ;
-		 	   else   if (option==PHYSICS) gPhysicsOptionList.push_back(argv[i]) ;
-		 	   		else   if (option==HIST) gHistFileName.push_back(argv[i])  ; // if several file names are given in a row, the last one will be the name of the flat histogram  
-          
-          else if (option==NONE)  {
-      			printf(" Provide an option before file : \n");
-      			InputMessage();
-          }
-          
+	   else if (option==ECALFILE) gECalibrationFilesList.push_back(argv[i]) ;
+		    else if (option==TCALFILE) gTCalibrationFilesList.push_back(argv[i]) ;
+	 	   		 else if (option==PHYSICS) gPhysicsOptionList.push_back(argv[i]) ;
+	 	   			  else if (option==HIST) gHistFileName.push_back(argv[i])  ; // if several file names are given in a row, the last one will be the name of the flat histogram  
+      
+					  		else if (option==NONE) {
+					  			printf(" Provide an option before file : \n");
+					  			InputMessage();
+          						}
     	}
     
    printf(" \n + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + \n");	 		   
@@ -588,7 +662,7 @@ void ParseInputLine(int argc, char **argv) {
     		}
     if (gPhysicsOptionList.size()==0) {
             printf(" No Physics option are selected.. All options will be constructed \n");
-			printf(" \tto select <option> for calibration : -p <data>/<sum>/<cluster>/<pair> \n");
+			printf(" \tto select <option> for calibration : -p <data>/<cluster>/<pair> \n");
     		} 
     if (gHistFileName.size()==0) {
             printf(" No Flat histogram .. \n");
@@ -603,19 +677,16 @@ void ParseInputLine(int argc, char **argv) {
 				if( i+1 == gRootFilesList.size()) printf("\n\n"); 
 				}
     		if(gECalibrationFilesList.size()){
-    			gECalibrationRead=true;
     			unsigned index = gECalibrationFilesList.size()-1 ; 
 				printf(" Reading in energy calibration file %s\n", gECalibrationFilesList.at(index) );
 				ReadEnergyCalibration(gECalibrationFilesList.at(index)); // read the last one given 
 				}
     		if(gTCalibrationFilesList.size()){
-				gTCalibrationRead=true;
     			unsigned index = gTCalibrationFilesList.size()-1 ; 
 				printf(" Reading in time calibration file %s\n", gTCalibrationFilesList.at(index) );
 				ReadTimeCalibration(gTCalibrationFilesList.at(index)); // read the last one given 
 				}
 			for(unsigned i = 0 ; i<gPhysicsOptionList.size() ; i++)	{
-				//gPhysOptionRead=true;
 				if( i == 0 ) printf(" Reading in physics options : ");
 				printf(" %s\t", gPhysicsOptionList.at(i) );  // this will be passed as booleans to the TMielEvent class
 				if( i+1 == gPhysicsOptionList.size()) {
@@ -660,5 +731,85 @@ cout << "\t------------------------" << endl ;
 			
 
 }
+
+
+void WriteHistFile(){
+
+cout << " \nWriteHistFile Not implemeted yet, will exit! " << endl ; 
+exit(-1); 
+// Get the name and Open the file 
+
+//write the histograms 
+
+
+}
+
+
+//Flat histograms 
+void FillHist(){ // limit on the multiplicity, if internal conversion electron limit = 1, if IPF limit = 2) 
+
+
+cout << " \nFillHist Not implemeted yet, will exit!" << endl ; 
+exit(-1); 
+
+//This could be made in a mor eintellgent way if there's a way to set the NAME of the histogram using the "enum" value as a string
+
+/* 
+//Miel energy 
+int mult = 0 ; 
+if (TableAt[Miel1E]>0) mult++; 
+if (TableAt[Miel2E]>0) mult++;  
+if (TableAt[Miel3E]>0) mult++; 
+if (TableAt[Miel4E]>0) mult++; 
+if (TableAt[Miel5E]>0) mult++;  
+if (TableAt[Miel6E]>0) mult++; 
+
+if (mult>0 && mult <= gFold){ //  any multiplicity > gFold will not be stored for the Miel energy 
+	gHistCharge[Miel1E]->Fill(Miel_st.TableAt[Miel1E]); 
+	gHistCharge[Miel2E]->Fill(Miel_st.TableAt[Miel2E]); 
+	gHistCharge[Miel3E]->Fill(Miel_st.TableAt[Miel3E]); 
+	gHistCharge[Miel4E]->Fill(Miel_st.TableAt[Miel4E]); 
+	gHistCharge[Miel5E]->Fill(Miel_st.TableAt[Miel5E]); 
+	gHistCharge[Miel6E]->Fill(Miel_st.TableAt[Miel6E]); 
+	mult = 0 ; 
+	}
+
+//Miel Time 
+	gHistCharge[MielT1T2]->Fill(gMiel_st.TableAt[MielT1T2];
+	gHistCharge[MielT1T3]->Fill(gMiel_st.TableAt[MielT1T3];
+	gHistCharge[MielT1T4]->Fill(gMiel_st.TableAt[MielT1T4];
+	gHistCharge[MielT1T5]->Fill(gMiel_st.TableAt[MielT1T5];
+	gHistCharge[MielT1T6]->Fill(gMiel_st.TableAt[MielT1T6];
+	gHistCharge[MielT2T3]->Fill(gMiel_st.TableAt[MielT2T3];
+	gHistCharge[MielT2T4]->Fill(gMiel_st.TableAt[MielT2T4];
+	gHistCharge[MielT2T5]->Fill(gMiel_st.TableAt[MielT2T5];
+	gHistCharge[MielT2T6]->Fill(gMiel_st.TableAt[MielT2T6];
+	gHistCharge[MielT3T4]->Fill(gMiel_st.TableAt[MielT3T4];
+	gHistCharge[MielT3T5]->Fill(gMiel_st.TableAt[MielT3T5];
+	gHistCharge[MielT3T6]->Fill(gMiel_st.TableAt[MielT3T6];
+	gHistCharge[MielT4T5]->Fill(gMiel_st.TableAt[MielT4T5];
+	gHistCharge[MielT4T6]->Fill(gMiel_st.TableAt[MielT4T6];
+	gHistCharge[MielT5T6]->Fill(gMiel_st.TableAt[MielT5T6];
+		
+		
+
+//Aptherix  
+	gHistCharge[Aptherix]->Fill(Miel_st.TableAt[Aptherix]); 
+
+//control 
+	gHistCharge[HallProbe]->Fill(gMiel_st.TableAt[HallProbe];
+	gHistCharge[VcontE]->Fill(gMiel_st.TableAt[VcontE];
+	gHistCharge[VcontG]->Fill(gMiel_st.TableAt[VcontG];
+	gHistCharge[Chopper]->Fill(gMiel_st.TableAt[ Chopper];
+	*/
+	
+	WriteHistFile(); 
+		
+}
+
+
+
+
+
 
 
