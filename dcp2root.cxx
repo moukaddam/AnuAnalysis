@@ -2,6 +2,7 @@
 // edited the argument passing to the function LoadDCPFile(), to handle a run-time error. [Mhd: moukaddam@triumf.ca : 25/10/14]
 // edited add a DEBUG variable. [Mhd: moukaddam@triumf.ca : 25/10/14]
 // edited add an ADC configuration file. [Mhd: moukaddam@triumf.ca : 27/10/14]
+// edited by adding the argument of configuration file name to the functions . [Mhd: moukaddam@triumf.ca : 02/11/14]
 // #########################################################################################3
 //   (a) edit libDAQ.cxx if needed
 //   (b) run root
@@ -21,8 +22,6 @@ using namespace std ; // MHD : 27 October 2014, add name space
 #define DEBUG 0
 
 void dcp2root(){
-  //  PrepareConfig();
-  //  PrepareTree(); 
 
   // Set name for used input and output files
   cout <<"========================================"<<endl;
@@ -42,6 +41,8 @@ void dcp2root(){
   if (DaqConfigName=="") DaqConfigName="daq.config"; //default 
   cout << DaqConfigName << endl ; 
   
+  //  PrepareConfig(DaqConfigName);
+  //  PrepareTree(DaqConfigName);
   
   TFile *file = new TFile(outfileName.c_str(),"recreate");
   LoadDCPFile(infileName, DaqConfigName );
@@ -134,10 +135,10 @@ if (DEBUG) cout << " End of PrepareConfig " << endl;
 }
 
 // Creates a new tree, based on the configuration above.
-TTree *PrepareTree(void)
+TTree *PrepareTree(string DaqConfigname)
 {
   // Create the configuration using the function above.
-  TDAQConfig *DAQConfig = PrepareConfig();
+  TDAQConfig *DAQConfig = PrepareConfig(DaqConfigname);
   // Create the new tree. You can set the name and description to something more
   // appropriate for your experiment.
   TTree *MielTree = new TTree("MielTree", "Miel event tree");
