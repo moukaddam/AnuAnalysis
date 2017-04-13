@@ -28,7 +28,4 @@ struct2class.cxx  : code that convertsbasic root tree to a more compact (vectori
 struct2class      : struct2class.cxx  executable { converts "XXXX.RUNYYY.root" to "Data_XXXX.RUNYYY.root" }
                     e.g. > ./struct2class  FE54_0713.RUN004.root
                     
-                    
-Analysis classes : 
-------------------
-To be implemented 
+                   
